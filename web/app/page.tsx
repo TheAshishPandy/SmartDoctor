@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { ThemeToggle } from "../components/theme-toggle";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -84,6 +86,9 @@ export default function Home() {
         <a className="nav-item active" href="#overview"><span>▦</span> Overview</a>
         <a className="nav-item" href="#records"><span>▤</span> Patient records</a>
         <a className="nav-item" href="#assistant"><span>✧</span> AI assistant</a>
+        <div className="workspace-label nav-spacer">PREFERENCES</div>
+        <Link className="nav-item" href="/settings"><span>⚙</span> Settings</Link>
+        <Link className="nav-item" href="/profile"><span>◉</span> My profile</Link>
         <div className="sidebar-bottom">
           <div className="secure-card"><span className="secure-icon">⌑</span><div><strong>Private demo space</strong><small>Synthetic data only</small></div></div>
           <div className="profile"><div className="avatar">AM</div><div><strong>{patientName}</strong><small>Patient workspace</small></div><span className="dots">•••</span></div>
@@ -93,7 +98,7 @@ export default function Home() {
       <section className="main-area">
         <header className="topbar">
           <div><span className="breadcrumb">Workspace / </span><strong>Overview</strong></div>
-          <div className="top-actions"><span className="status-dot"></span><span>Local environment</span><span className="top-avatar">AM</span></div>
+          <div className="top-actions"><span className="status-dot"></span><span>Local environment</span><ThemeToggle /><Link className="signin-link" href="/login">Sign in</Link><span className="top-avatar">AM</span></div>
         </header>
         <div className="content" id="overview">
           <div className="welcome-row">
