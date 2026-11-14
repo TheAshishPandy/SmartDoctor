@@ -1,11 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "SmartDoctor | Patient Knowledge Workspace",
-  description: "Secure patient document workspace with evidence-grounded AI assistance.",
-};
-
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
-}
+import { Providers } from "../components/providers";
+export const metadata:Metadata={title:"SmartDoctor | Patient Knowledge Workspace",description:"A secure patient document workspace with evidence-grounded AI assistance."};
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en" suppressHydrationWarning><body><Providers>{children}</Providers></body></html>;}
