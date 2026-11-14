@@ -1,114 +1,86 @@
 # SmartDoctor Development Guide
 
-## 1. Current repository status
+## 1. Repository status
 
-This repository currently contains the project license and architecture documentation. Application code, dependency manifests, migrations, tests and deployment files have not yet been added. The stack described in these documents is the proposed target.
+The repository now contains the first implementation skeleton: a FastAPI backend, a Next.js frontend shell, Docker Compose services, a backend smoke-test suite and GitHub Actions CI. Authentication, database persistence, clinical workflows and AI capabilities are not implemented yet. Track verified progress in [milestones.md](milestones.md).
 
-## 2. Suggested implementation sequence
+## 2. Local prerequisites
 
-1. Create backend and frontend application skeletons.
-2. Add configuration and secret management.
-3. Add database migrations and identity integration.
-4. Implement authorization policies and audit events.
-5. Add patient/clinician domain modules.
-6. Add conversation persistence and workflow orchestration.
-7. Add model gateway and evaluation harness.
-8. Add approved RAG ingestion and retrieval.
-9. Add secure document pipeline.
-10. Add clinician review and FHIR adapters.
+- Docker Engine with Docker Compose v2.
+- Python 3.12 or 3.13 for backend development.
+- Node.js 22 and npm for frontend development.
+- Git.
 
-## 3. Local development principles
+## 3. Start the complete development stack
 
-- Use synthetic or properly de-identified data only.
-- Keep local environment files out of version control.
-- Never commit API keys, credentials, access tokens or real patient documents.
-- Use pinned, reviewed dependencies and automated vulnerability scanning.
-- Run database migrations explicitly.
-- Keep model/provider configuration external to source code.
-- Make local/cloud model routes explicit in configuration.
-- Do not enable external cloud inference by default for sensitive data.
-
-## 4. Proposed environment variables
-
-Names only; values must be supplied through a secret manager or ignored local environment file.
-
-```dotenv
-APP_ENV=development
-API_BASE_URL=http://localhost:8000
-DATABASE_URL=
-REDIS_URL=
-QDRANT_URL=
-OBJECT_STORAGE_ENDPOINT=
-OBJECT_STORAGE_BUCKET=
-OIDC_ISSUER_URL=
-OIDC_CLIENT_ID=
-OIDC_CLIENT_SECRET=
-LOCAL_MODEL_BASE_URL=
-LOCAL_MODEL_NAME=
-CLOUD_MODEL_PROVIDER=
-CLOUD_MODEL_ENDPOINT=
-CLOUD_MODEL_API_KEY=
-FHIR_BASE_URL=
-FHIR_CLIENT_ID=
-FHIR_CLIENT_SECRET=
+```bash
+cp .env.example .env
+docker compose up --build
 ```
 
-Do not commit a populated `.env` file. Use a checked-in `.env.example` with empty or safe placeholder values only when implementation begins.
+Endpoints:
+- Web: `http://localhost:3000`
+- API health: `http://localhost:8000/health`
+- API OpenAPI: `http://localhost:8000/docs`
+- PostgreSQL: `localhost:5432`
+- Redis: `localhost:6379`
 
-## 5. Proposed quality checks
+The API health endpoint currently confirms process availability only; it is not a database or dependency readiness check. PostgreSQL and Redis have Compose health checks. The frontend container installs npm dependencies on first start.
 
-- Formatting and linting.
-- Static type checks.
-- Unit tests for domain rules.
-- Integration tests for database and API.
-- Authorization tests including cross-patient denial.
-- Workflow tests with deterministic model stubs.
-- Prompt-injection and unsafe-output tests.
-- FHIR contract tests against a sandbox.
-- Dependency and container scanning.
-- Secret scanning.
-- Migration validation.
+## 4. Backend development and tests
 
-## 6. Branch and commit conventions
+```bash
+cd backend
+python -m venv .venv
+# Windows: .venv\\Scripts\\activate
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -e ".[dev]"
+ruff check .
+pytest -q
+```
 
-Suggested branches:
-- `main`: protected, releasable baseline.
+The current smoke tests cover the health response and OpenAPI availability. Add unit and integration tests alongside each new feature.
+
+## 5. Frontend development and checks
+
+```bash
+cd web
+npm install
+npm run dev
+npm run lint
+npm run build
+```
+
+## 6. Environment and secrets
+
+- `.env.example` contains development-only placeholders; copy it to `.env` locally.
+- `.env` and populated environment files are ignored by Git.
+- Never commit API keys, credentials, access tokens or real patient documents.
+- Use synthetic or properly de-identified data only.
+- Production secrets must come from a managed secret store, not Compose or source files.
+- Do not enable external cloud inference for sensitive data until provider, region, retention and contractual controls are approved.
+
+## 7. Current limitations
+
+- PostgreSQL and Redis containers are provisioned, but the API does not connect to them yet.
+- There is no ORM, schema migration, identity provider, authentication, authorization or consent enforcement yet.
+- `/health` is a process health check, not a full dependency readiness check.
+- The UI is a static foundation page, not a patient portal or clinical tool.
+- No real patient data may be used.
+
+## 8. Quality checks
+
+CI runs backend Ruff lint and pytest, plus frontend ESLint and Next.js production build. Add checks for database migrations, authorization, security scanning, dependency auditing and container scanning as those capabilities are introduced.
+
+## 9. Branch and commit conventions
+
+- `main`: releasable baseline.
 - `feature/<short-name>`: feature work.
 - `fix/<short-name>`: defect fixes.
 - `docs/<short-name>`: documentation-only work.
 
-Suggested commit prefixes:
-- `docs:` documentation
-- `feat:` feature
-- `fix:` bug fix
-- `test:` tests
-- `refactor:` internal refactor
-- `chore:` tooling/dependencies
-- `security:` security hardening
+Commit prefixes: `feat:`, `fix:`, `test:`, `refactor:`, `chore:`, `security:` and `docs:`. Keep changes focused and include tests and documentation.
 
-Keep changes focused and include tests and docs with implementation changes.
+## 10. Before production
 
-## 7. Pull request checklist
-
-- [ ] Scope and intended use are clear.
-- [ ] No secrets, PHI or real patient files are included.
-- [ ] Authorization is enforced server-side.
-- [ ] Audit and provenance are covered.
-- [ ] Failure paths and safe fallbacks are tested.
-- [ ] AI prompt/model/corpus versions are recorded.
-- [ ] Clinical review is obtained where required.
-- [ ] Tests, lint and security checks pass.
-- [ ] Documentation is updated.
-
-## 8. Operational runbooks to add before production
-
-- Database backup and restore.
-- Key/secret rotation.
-- Patient data access incident.
-- Suspected PHI disclosure.
-- Model/provider outage.
-- EHR/FHIR synchronization failure.
-- Unsafe AI output or emergency escalation incident.
-- Document malware or parser exploit.
-- Data export/deletion request.
-- Disaster recovery and business continuity.
+Complete identity and access controls, consent, audit, data retention, backup/restore, key rotation, incident response, threat modelling, clinical validation, privacy/legal review and independent security testing. The current foundation is not production-ready.
