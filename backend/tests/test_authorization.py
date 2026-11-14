@@ -87,3 +87,22 @@ def test_missing_bearer_token_is_rejected(client):
     app.dependency_overrides.pop(get_current_principal, None)
     response = client.get("/api/v1/patients/00000000-0000-0000-0000-000000000001")
     assert response.status_code == 401
+
+
+def test_authenticated_workspace_bootstrap_is_idempotent(client, db_session):
+    first = client.post("/api/v1/workspace/bootstrap")
+    second = client.post("/api/v1/workspace/bootstrap")
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["patient_id"] == second.json()["patient_id"]
+    assert first.json()["mode"] == "authenticated"
+    assert db_session.query(Patient).count() == 1
+    assert db_session.query(Organization).count() == 1
+
+
+def test_demo_identity_cannot_use_authenticated_workspace_bootstrap(client):
+    app.dependency_overrides[get_current_principal] = lambda: Principal(
+        "demo-patient", frozenset({"patient"}), "00000000-0000-0000-0000-000000000001", is_demo=True
+    )
+    response = client.post("/api/v1/workspace/bootstrap")
+    assert response.status_code == 403
