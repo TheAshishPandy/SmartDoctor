@@ -2,9 +2,9 @@ name: SmartDoctor CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/smartdoctor-rag-workspace]
   pull_request:
-    branches: [main]
+    branches: [main, feat/smartdoctor-rag-workspace]
 
 permissions:
   contents: read
