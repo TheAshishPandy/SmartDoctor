@@ -63,7 +63,12 @@ services:
       EMBEDDING_MODEL: BAAI/bge-small-en-v1.5
       UPLOAD_DIRECTORY: /data/uploads
       MAX_UPLOAD_MB: 20
-      DEV_AUTH_ENABLED: "true"
+      DEV_AUTH_ENABLED: ${DEV_AUTH_ENABLED:-true}
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-}
+      OIDC_JWKS_URL: ${OIDC_JWKS_URL:-}
+      OIDC_ROLES_CLAIM: ${OIDC_ROLES_CLAIM:-roles}
+      OIDC_ORGANIZATION_CLAIM: ${OIDC_ORGANIZATION_CLAIM:-organization_id}
       LLM_BASE_URL: ${LLM_BASE_URL:-}
       LLM_API_KEY: ${LLM_API_KEY:-local-dev}
       LLM_MODEL: ${LLM_MODEL:-qwen2.5:3b}
@@ -81,7 +86,21 @@ services:
     command: sh -c "npm install && npm run dev"
     environment:
       NEXT_TELEMETRY_DISABLED: "1"
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      APP_ENV: ${APP_ENV:-development}
+      DEV_AUTH_ENABLED: ${DEV_AUTH_ENABLED:-true}
+      SMARTDOCTOR_API_INTERNAL_URL: http://api:8000
+      AUTH_SECRET: ${AUTH_SECRET:-local-only-change-this-secret}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
+      AUTH_OIDC_ISSUER: ${AUTH_OIDC_ISSUER:-}
+      AUTH_OIDC_CLIENT_ID: ${AUTH_OIDC_CLIENT_ID:-}
+      AUTH_OIDC_CLIENT_SECRET: ${AUTH_OIDC_CLIENT_SECRET:-}
+      AUTH_OIDC_AUDIENCE: ${AUTH_OIDC_AUDIENCE:-}
+      AUTH_OIDC_SCOPE: ${AUTH_OIDC_SCOPE:-openid profile email}
+      NEXT_PUBLIC_OIDC_ENABLED: ${NEXT_PUBLIC_OIDC_ENABLED:-false}
+      NEXT_PUBLIC_DEV_AUTH_ENABLED: ${DEV_AUTH_ENABLED:-true}
+      NEXT_PUBLIC_OIDC_SIGNUP_URL: ${NEXT_PUBLIC_OIDC_SIGNUP_URL:-}
+      NEXT_PUBLIC_OIDC_PASSWORD_RESET_URL: ${NEXT_PUBLIC_OIDC_PASSWORD_RESET_URL:-}
     ports: ["3000:3000"]
     volumes:
       - ./web:/workspace
