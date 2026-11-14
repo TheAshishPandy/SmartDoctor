@@ -1,14 +1,23 @@
 "use client";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft,ArrowRight,Activity,Eye,EyeOff,HeartPulse,LockKeyhole,Mail,ShieldCheck,Sparkles,Stethoscope } from "lucide-react";
-import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { ArrowLeft,ArrowRight,Activity,HeartPulse,ShieldCheck,Sparkles,Stethoscope,LockKeyhole,ExternalLink } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
+
 type Mode="login"|"register"|"forgot";
+const oidcEnabled = process.env.NEXT_PUBLIC_OIDC_ENABLED === "true";
+const demoEnabled = process.env.NEXT_PUBLIC_DEV_AUTH_ENABLED === "true";
+const signupUrl = process.env.NEXT_PUBLIC_OIDC_SIGNUP_URL;
+const resetUrl = process.env.NEXT_PUBLIC_OIDC_PASSWORD_RESET_URL;
+
 export function AuthScreen({mode}:{mode:Mode}) {
- const [show,setShow]=useState(false); const [notice,setNotice]=useState("");
- const copy={login:["Welcome back","Your health story, all in one place."],register:["Create your account","A calmer, clearer way to manage health information."],forgot:["Reset your password","We’ll help you get back to your workspace."]};
+ const copy={login:["Welcome back","Sign in securely through your organization’s identity provider."],register:["Create your account","Account registration is managed by your identity provider."],forgot:["Reset your password","Password recovery is securely managed by your identity provider."]};
  const heading=copy[mode];
+ const beginSignIn=()=> {
+   const callbackUrl=typeof window!=="undefined" ? new URLSearchParams(window.location.search).get("callbackUrl") : null;
+   void signIn("smartdoctor-oidc",{redirectTo:callbackUrl || "/"});
+ };
  return <main className="auth-layout">
   <section className="auth-visual">
    <div className="auth-visual-top"><Link href="/" className="brand brand-light"><span className="brand-symbol"><HeartPulse size={19}/></span>smartdoctor</Link><span className="visual-tag"><i/> PRIVATE HEALTH WORKSPACE</span></div>
@@ -37,19 +46,16 @@ export function AuthScreen({mode}:{mode:Mode}) {
    <div className="auth-panel-top"><Link href="/" className="mobile-brand"><span className="brand-symbol"><HeartPulse size={18}/></span>smartdoctor</Link><ThemeToggle/><Link href="/" className="back-link"><ArrowLeft size={15}/> Back to home</Link></div>
    <motion.div className="auth-card" initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{duration:.45}}>
     <div className="auth-icon"><Stethoscope size={21}/></div><p className="auth-eyebrow">SMARTDOCTOR WORKSPACE</p><h2>{heading[0]}</h2><p className="auth-subtitle">{heading[1]}</p>
-    {mode==="login"&&<><form className="auth-form" onSubmit={e=>{e.preventDefault();setNotice("This build is configured for local demo access. Use the demo button below to open the synthetic patient workspace.");}}>
-      <label>Email address<div className="input-wrap"><Mail size={17}/><input type="email" placeholder="you@example.com" required/></div></label>
-      <label>Password<div className="input-wrap"><LockKeyhole size={17}/><input type={show?"text":"password"} placeholder="Enter your password" required minLength={8}/><button type="button" className="reveal-button" onClick={()=>setShow(!show)} aria-label="Toggle password visibility">{show?<EyeOff size={16}/>:<Eye size={16}/>}</button></div></label>
-      <div className="auth-inline"><label className="remember"><input type="checkbox"/> Remember me</label><Link href="/forgot-password">Forgot password?</Link></div>
-      <button className="primary-button full-button" type="submit">Sign in <ArrowRight size={16}/></button>
-     </form>{notice&&<div className="auth-notice">{notice}</div>}<div className="auth-divider"><span>OR</span></div><Link className="demo-button" href="/">Continue with local demo <ArrowRight size={16}/></Link><p className="auth-switch">New to SmartDoctor? <Link href="/register">Create an account</Link></p></>}
-    {mode==="register"&&<><form className="auth-form" onSubmit={e=>{e.preventDefault();setNotice("Registration is not connected yet. Configure an OIDC identity provider before creating real accounts.");}}>
-      <label>Full name<div className="input-wrap"><input placeholder="Your full name" required/></div></label><label>Email address<div className="input-wrap"><Mail size={17}/><input type="email" placeholder="you@example.com" required/></div></label><label>Create password<div className="input-wrap"><LockKeyhole size={17}/><input type="password" placeholder="At least 8 characters" minLength={8} required/></div></label><button className="primary-button full-button" type="submit">Create account <ArrowRight size={16}/></button>
-     </form>{notice&&<div className="auth-notice">{notice}</div>}<p className="auth-switch">Already have an account? <Link href="/login">Sign in</Link></p></>}
-    {mode==="forgot"&&<><form className="auth-form" onSubmit={e=>{e.preventDefault();setNotice("Password recovery is not enabled in this development build. Connect an OIDC provider to activate recovery.");}}><label>Email address<div className="input-wrap"><Mail size={17}/><input type="email" placeholder="you@example.com" required/></div></label><button className="primary-button full-button" type="submit">Send recovery link <ArrowRight size={16}/></button></form>{notice&&<div className="auth-notice">{notice}</div>}<p className="auth-switch"><Link href="/login">Back to sign in</Link></p></>}
-    <div className="auth-trust"><ShieldCheck size={15}/><span>Your information stays private to your authorized workspace.</span></div>
+    {mode==="login"&&<><div className="auth-form">
+      {oidcEnabled ? <button className="primary-button full-button" onClick={beginSignIn}><LockKeyhole size={16}/> Continue with secure sign-in <ArrowRight size={16}/></button> : <div className="auth-notice">OpenID Connect is not configured yet. Add your identity-provider issuer and client credentials to enable secure sign-in.</div>}
+     </div>
+     {demoEnabled&&<><div className="auth-divider"><span>OR</span></div><Link className="demo-button" href="/">Continue with local synthetic demo <ArrowRight size={16}/></Link></>}
+     <p className="auth-switch">New to SmartDoctor? <Link href="/register">Create an account</Link></p></>}
+    {mode==="register"&&<><div className="auth-notice">For security, SmartDoctor does not collect or store passwords. Create your account using your organization’s approved identity provider.</div>{signupUrl ? <a className="primary-button full-button" href={signupUrl}>Continue to registration <ExternalLink size={15}/></a> : <p className="auth-switch">Ask your workspace administrator for the identity provider’s registration link.</p>}<p className="auth-switch">Already have an account? <Link href="/login">Sign in</Link></p></>}
+    {mode==="forgot"&&<><div className="auth-notice">Password reset is handled by your identity provider. SmartDoctor never asks you to enter your provider password here.</div>{resetUrl ? <a className="primary-button full-button" href={resetUrl}>Open password recovery <ExternalLink size={15}/></a> : <p className="auth-switch">Use the password recovery link on your organization’s sign-in page.</p>}<p className="auth-switch"><Link href="/login">Back to sign in</Link></p></>}
+    <div className="auth-trust"><ShieldCheck size={15}/><span>Access tokens remain on the server in an encrypted HTTP-only session.</span></div>
    </motion.div>
-   <p className="auth-legal">By continuing, you agree to our <a href="#terms">Terms</a> and <a href="#privacy">Privacy Policy</a>.</p>
+   <p className="auth-legal">Use SmartDoctor with synthetic data only until production security and clinical validation are complete.</p>
   </section>
  </main>;
 }
