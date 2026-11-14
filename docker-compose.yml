@@ -47,12 +47,11 @@ services:
       retries: 10
 
   api:
-    build:
-      context: ./backend
+    build: ./backend
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     environment:
       APP_ENV: development
-      APP_VERSION: 0.2.0
+      APP_VERSION: 0.3.0
       CORS_ORIGINS: http://localhost:3000
       DATABASE_URL: postgresql+psycopg://smartdoctor:smartdoctor_dev_only@postgres:5432/smartdoctor
       REDIS_URL: redis://redis:6379/0
@@ -60,17 +59,21 @@ services:
       MONGODB_DATABASE: smartdoctor
       QDRANT_URL: http://qdrant:6333
       QDRANT_COLLECTION: patient_records
-      EMBEDDING_DIMENSIONS: 1536
+      EMBEDDING_DIMENSIONS: 384
+      EMBEDDING_MODEL: BAAI/bge-small-en-v1.5
+      UPLOAD_DIRECTORY: /data/uploads
+      MAX_UPLOAD_MB: 20
+      DEV_AUTH_ENABLED: "true"
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-local-dev}
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5:3b}
     ports: ["8000:8000"]
+    volumes: [smartdoctor_uploads:/data/uploads]
     depends_on:
-      postgres:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      postgres: {condition: service_healthy}
+      mongodb: {condition: service_healthy}
+      qdrant: {condition: service_healthy}
+      redis: {condition: service_healthy}
 
   web:
     image: node:22-alpine
@@ -78,6 +81,7 @@ services:
     command: sh -c "npm install && npm run dev"
     environment:
       NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_URL: http://localhost:8000
     ports: ["3000:3000"]
     volumes:
       - ./web:/workspace
@@ -89,4 +93,5 @@ volumes:
   mongodb_data:
   qdrant_data:
   redis_data:
+  smartdoctor_uploads:
   web_node_modules:
