@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 from pymongo import AsyncMongoClient, DESCENDING
-from pymongo.errors import DuplicateKeyError
 
 from app.config import get_settings
 
