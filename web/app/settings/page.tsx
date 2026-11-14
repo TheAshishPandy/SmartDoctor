@@ -1,0 +1,4 @@
+import Link from "next/link";
+import { Settings,ShieldCheck,Sun,ArrowLeft } from "lucide-react";
+import { ThemeToggle } from "../../components/theme-toggle";
+export default function SettingsPage(){return <main className="simple-page"><Link href="/" className="back-link"><ArrowLeft size={15}/> Workspace</Link><div className="simple-heading"><span className="simple-icon"><Settings/></span><p className="eyebrow">PREFERENCES</p><h1>Settings</h1><p>Manage your SmartDoctor workspace preferences.</p></div><section className="simple-card"><div><Sun/><span><b>Appearance</b><small>Switch between light and dark themes on this device.</small></span><ThemeToggle/></div><div><ShieldCheck/><span><b>Privacy & safety</b><small>Use synthetic patient data only in this development workspace.</small></span><strong className="status-chip">Demo mode</strong></div></section></main>;}
