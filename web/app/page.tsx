@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ThemeToggle } from "../components/theme-toggle";
+import { SessionControls } from "../components/session-controls";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API = "/api/backend";
 
 type DocumentItem = { id: string; filename: string; status: string; chunk_count: number; created_at: string; error?: string | null };
 type Source = { document_id: string; filename: string; page: number; score: number; excerpt: string };
@@ -32,8 +33,9 @@ export default function Home() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        const response = await fetch(`${API}/api/v1/workspace/demo/bootstrap`, { method: "POST" });
-        if (!response.ok) throw new Error((await response.json()).detail || "Could not initialize demo workspace");
+        let response = await fetch(`${API}/api/v1/workspace/bootstrap`, { method: "POST" });
+        if (!response.ok && process.env.NEXT_PUBLIC_DEV_AUTH_ENABLED === "true") response = await fetch(`${API}/api/v1/workspace/demo/bootstrap`, { method: "POST" });
+        if (!response.ok) throw new Error((await response.json()).detail || "Could not initialize workspace");
         const data = await response.json();
         setPatientId(data.patient_id);
         setPatientName(data.display_label);
@@ -90,7 +92,7 @@ export default function Home() {
         <Link className="nav-item" href="/settings"><span>⚙</span> Settings</Link>
         <Link className="nav-item" href="/profile"><span>◉</span> My profile</Link>
         <div className="sidebar-bottom">
-          <div className="secure-card"><span className="secure-icon">⌑</span><div><strong>Private demo space</strong><small>Synthetic data only</small></div></div>
+          <div className="secure-card"><span className="secure-icon">⌑</span><div><strong>Private workspace</strong><small>Authorized access only</small></div></div>
           <div className="profile"><div className="avatar">AM</div><div><strong>{patientName}</strong><small>Patient workspace</small></div><span className="dots">•••</span></div>
         </div>
       </aside>
@@ -98,7 +100,7 @@ export default function Home() {
       <section className="main-area">
         <header className="topbar">
           <div><span className="breadcrumb">Workspace / </span><strong>Overview</strong></div>
-          <div className="top-actions"><span className="status-dot"></span><span>Local environment</span><ThemeToggle /><Link className="signin-link" href="/login">Sign in</Link><span className="top-avatar">AM</span></div>
+          <div className="top-actions"><span className="status-dot"></span><span>Local environment</span><ThemeToggle /><SessionControls /><span className="top-avatar">AM</span></div>
         </header>
         <div className="content" id="overview">
           <div className="welcome-row">
