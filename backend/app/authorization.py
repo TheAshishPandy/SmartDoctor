@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 from app.models import AuditEvent, CareRelationship, ConsentGrant, Membership, Patient
 from app.security import Principal
@@ -34,7 +34,8 @@ def authorize_patient_read(db: Session, principal: Principal, patient_id: UUID, 
             CareRelationship.clinician_sub == principal.subject,
             CareRelationship.organization_id == patient.organization_id,
             CareRelationship.status == "active",
-            CareRelationship.ends_at.is_(None),
+            CareRelationship.starts_at <= now,
+            or_(CareRelationship.ends_at.is_(None), CareRelationship.ends_at > now),
         ))
         consent = db.scalar(select(ConsentGrant).where(
             ConsentGrant.patient_id == patient.id,
