@@ -13,6 +13,12 @@ SmartDoctor is a development healthcare information workspace with patient-scope
 - **Redis**: reserved for cache/short-lived coordination.
 - **Local Docker volume**: original uploaded files in development.
 
+## Authentication
+
+The web app uses Auth.js with an OpenID Connect provider. Register this callback URL with your identity provider: `http://localhost:3000/api/auth/callback/smartdoctor-oidc`. Set `AUTH_SECRET` to a random secret of at least 32 characters, `AUTH_OIDC_ISSUER`, `AUTH_OIDC_CLIENT_ID`, and `AUTH_OIDC_CLIENT_SECRET` in `.env`. Configure the API with matching `OIDC_ISSUER`, `OIDC_AUDIENCE`, and `OIDC_JWKS_URL`; the API validates the access-token signature, issuer, audience, expiry and subject. The provider must issue a JWT access token whose audience matches `OIDC_AUDIENCE`. The role claim defaults to `roles`; accounts without explicit roles receive the `patient` role. Registration and password recovery remain identity-provider-hosted flows; set `NEXT_PUBLIC_OIDC_SIGNUP_URL` and `NEXT_PUBLIC_OIDC_PASSWORD_RESET_URL` to the provider's self-service pages. The Next.js backend proxy keeps access tokens in the encrypted HTTP-only Auth.js cookie and forwards them server-side; browser code never receives the bearer token. Expired access tokens require signing in again in this initial OIDC milestone.
+
+Local demo mode is separate: `DEV_AUTH_ENABLED=true` is permitted only with `APP_ENV=development`. Disable it in every shared or production deployment. Set `DEV_AUTH_ENABLED=false` and `APP_ENV=production` before exposing the service.
+
 ## Run the complete local demo
 
 Requirements: Docker Desktop with Compose and at least 6 GB available memory. First embedding model use downloads model weights.
