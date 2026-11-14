@@ -1,0 +1,57 @@
+import NextAuth from "next-auth";
+
+const issuer = process.env.AUTH_OIDC_ISSUER;
+const clientId = process.env.AUTH_OIDC_CLIENT_ID;
+const clientSecret = process.env.AUTH_OIDC_CLIENT_SECRET;
+const audience = process.env.AUTH_OIDC_AUDIENCE;
+
+const providers = issuer && clientId && clientSecret ? [{
+  id: "smartdoctor-oidc",
+  name: process.env.AUTH_OIDC_PROVIDER_NAME || "Organization account",
+  type: "oidc" as const,
+  issuer,
+  clientId,
+  clientSecret,
+  idToken: true,
+  checks: ["pkce", "state", "nonce"] as ("pkce" | "state" | "nonce")[],
+  authorization: { params: {
+    scope: process.env.AUTH_OIDC_SCOPE || "openid profile email",
+    ...(audience ? { audience } : {}),
+  }},
+  profile(profile: Record<string, unknown>) {
+    return {
+      id: String(profile.sub || ""),
+      name: typeof profile.name === "string" ? profile.name : null,
+      email: typeof profile.email === "string" ? profile.email : null,
+      image: typeof profile.picture === "string" ? profile.picture : null,
+    };
+  },
+}] : [];
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  providers,
+  secret: process.env.AUTH_SECRET,
+  trustHost: process.env.AUTH_TRUST_HOST === "true",
+  session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
+  pages: { signIn: "/login" },
+  callbacks: {
+    async jwt({ token, account }) {
+      if (account?.access_token) {
+        token.accessToken = account.access_token;
+        token.accessTokenExpires = account.expires_at
+          ? account.expires_at * 1000
+          : Date.now() + 60 * 60 * 1000;
+        token.authError = undefined;
+      }
+      if (token.accessTokenExpires && Date.now() >= token.accessTokenExpires) {
+        token.authError = "AccessTokenExpired";
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) session.user.id = token.sub || "";
+      if (token.authError) session.error = token.authError;
+      return session;
+    },
+  },
+});
