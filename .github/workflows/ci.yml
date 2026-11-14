@@ -25,6 +25,10 @@ jobs:
       - run: python -m pip install -e ".[dev]"
       - run: ruff check .
       - run: pytest -q
+      - name: Verify database migration
+        run: |
+          DATABASE_URL=sqlite:///./smartdoctor_ci.db alembic upgrade head
+          DATABASE_URL=sqlite:///./smartdoctor_ci.db alembic check
 
   frontend:
     runs-on: ubuntu-latest
