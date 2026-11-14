@@ -1,71 +1,70 @@
 # SmartDoctor Milestone Tracker
 
-Milestones are marked **Complete** only after their acceptance criteria have been tested. A commit alone does not make a milestone complete.
+Milestones are marked **Complete** only after all acceptance criteria pass in CI and required environment checks are evidenced. A commit alone does not make a milestone complete.
 
 ## Milestone 1 — Platform foundation
 
-**Status: In progress — implementation committed; full environment verification pending.**
+**Status: In progress — implementation committed; full Docker and CI verification pending.**
 
-### Scope delivered
-- FastAPI application with environment-backed settings and a non-sensitive health endpoint.
-- Next.js/React/TypeScript application shell with an explicit non-clinical development notice.
-- Docker Compose services for PostgreSQL, Redis, API and web development server.
-- Safe `.env.example`, ignore rules and backend container definition.
-- GitHub Actions CI for backend lint/tests and frontend lint/build.
-- Backend health and OpenAPI smoke tests.
+Backend smoke tests passed locally (2 tests). Initial CI was started; consult its run history for final status. Frontend build/lint and Docker startup still require verification. See [foundation commit](https://github.com/TheAshishPandy/SmartDoctor/commit/e5e2afacd1fcd5e0eb05a8ed78bae02c3a76668a).
+
+## Milestone 2 — Identity, authorization and audit foundation
+
+**Status: In progress — implementation and security tests added; CI, PostgreSQL migration and live OIDC verification pending.**
+
+### Design decisions
+- A trusted OIDC provider owns credentials, MFA and identity proofing. The API validates RS256 tokens against provider JWKS, issuer and audience.
+- The signed token `sub` is the external identity. Roles are read from a signed `roles` array; never accept identity or role headers from clients.
+- A patient can read only their own profile.
+- A clinician requires active organization membership, active patient-care relationship in the same organization, and active, unrevoked, unexpired `patient.read` consent.
+- Organization membership or an administrator role alone never grants patient-record access.
+- Missing/invalid credentials return 401; absent identity-provider configuration returns 503. Unknown and unauthorized patient IDs both return 404.
+- Existing-patient read decisions create audit events containing actor, role, action, resource, outcome, correlation ID and timestamp, but no clinical content.
+- Consent and relationships are checked on every protected read; no authorization cache is used.
+
+### Implementation delivered
+- SQLAlchemy models for organizations, memberships, patients, care relationships, consent grants and audit events.
+- Alembic initial migration.
+- OIDC RS256/JWKS bearer-token validation boundary.
+- Protected patient profile read endpoint.
+- Default-deny owner/clinician authorization policy.
+- SQLite-backed tests for owner access, cross-patient denial, clinician positive access, revoked/expired consent, missing relationship, unknown role and missing bearer token.
 
 ### Acceptance criteria
 
 | Criterion | Status | Evidence / remaining work |
 |---|---|---|
-| Backend application imports and compiles | Passed locally | `python -m compileall -q app tests` |
-| Backend API smoke tests | Passed locally | `python -m pytest -q` — 2 passed |
-| Backend lint | Pending | Ruff is not installed in the current execution environment; CI installs it |
-| Frontend lint and production build | Pending | Dependencies are not installed in the current execution environment; CI installs them |
-| Docker Compose configuration and service startup | Pending | Docker is not available in the current execution environment |
-| CI workflow | Pending | Must inspect the GitHub Actions run after push |
-| No secrets or patient data committed | Reviewed | Only placeholder development credentials; no patient data |
+| Schema and indexes | Implemented | SQLAlchemy models and Alembic revision |
+| OIDC token verification | Implemented; provider not configured | RS256, JWKS, issuer, audience, required claims |
+| Patient ownership | Test added | Owner can read own profile |
+| Clinician access | Test added | Membership + relationship + consent |
+| Cross-patient isolation | Test added | Non-owner receives 404 and denied audit |
+| Consent revocation/expiry | Tests added | Both deny clinician access |
+| Audit trail | Tests added | Allowed and denied reads recorded |
+| Ruff and complete backend tests | Pending | Must pass CI |
+| PostgreSQL migration | Pending | Requires Docker/PostgreSQL verification |
+| Live OIDC integration | Pending | Requires selected provider configuration |
+| Security review | Pending | Required before production |
 
-### Explicitly not included in this milestone
-- Authentication/OIDC, MFA, roles, patient/clinician authorization and consent.
-- Database ORM, migrations, audit event persistence or patient records.
-- Chat, medical agents, model gateway, RAG, document upload or FHIR integration.
-
-These are subsequent milestones. Do not use real patient data with this foundation.
-
-### Local start
-
-```bash
-cp .env.example .env
-docker compose up --build
-```
-
-- Web: http://localhost:3000
-- API health: http://localhost:8000/health
-- API OpenAPI: http://localhost:8000/docs
-- PostgreSQL: localhost:5432
-- Redis: localhost:6379
-
-The credentials in `.env.example` and Compose are development-only. Never expose these services to a public network.
-
-### Backend checks
+### Run locally
 
 ```bash
 cd backend
 python -m pip install -e ".[dev]"
+alembic upgrade head
 ruff check .
 pytest -q
 ```
 
-### Frontend checks
+Compose runs `alembic upgrade head` before starting the development API. The production deployment must run migrations as a controlled one-off deployment job, not independently from every replica.
 
-```bash
-cd web
-npm install
-npm run lint
-npm run build
-```
+### Implemented API
+
+`GET /api/v1/patients/{patient_id}` requires an OIDC bearer access token. The token must be issued by the configured provider and contain a signed `sub` and `roles` array. Clinicians additionally require database-backed membership, relationship and consent. Tests override the principal dependency; do not use fabricated tokens outside tests.
+
+### Not production-ready
+The OIDC provider has not been selected/configured. User provisioning, MFA enrollment policy, consent grant/revocation endpoints, organization administration, audit retention/immutability, backup, threat modelling and independent security review remain outstanding. The audit table is not a tamper-proof compliance archive. Use synthetic data only.
 
 ## Next milestone
 
-**Milestone 2 — Identity, authorization and audit foundation:** OIDC integration design, user/organization/membership domain, patient-to-clinician relationship authorization, consent checks, PostgreSQL schema/migrations, and negative tests proving cross-patient access is denied. Use a test identity provider or deterministic test principal; do not introduce production credentials.
+**Milestone 3 — Patient record ingestion and provenance:** secure upload initiation, file type/size validation, malware-scanning boundary, encrypted object storage, document metadata, extraction lifecycle, source provenance and patient-controlled record linking. Direct EHR/FHIR connectors will be separately authorized and partner-profile tested.

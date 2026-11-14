@@ -5,10 +5,8 @@ services:
       POSTGRES_DB: smartdoctor
       POSTGRES_USER: smartdoctor
       POSTGRES_PASSWORD: smartdoctor_dev_only
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    ports: ["5432:5432"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U smartdoctor -d smartdoctor"]
       interval: 5s
@@ -16,10 +14,8 @@ services:
       retries: 10
   redis:
     image: redis:7.4-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
+    ports: ["6379:6379"]
+    volumes: [redis_data:/data]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -28,12 +24,13 @@ services:
   api:
     build:
       context: ./backend
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     environment:
       APP_ENV: development
-      APP_VERSION: 0.1.0
+      APP_VERSION: 0.2.0
       CORS_ORIGINS: http://localhost:3000
-    ports:
-      - "8000:8000"
+      DATABASE_URL: postgresql+psycopg://smartdoctor:smartdoctor_dev_only@postgres:5432/smartdoctor
+    ports: ["8000:8000"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,13 +42,11 @@ services:
     command: sh -c "npm install && npm run dev"
     environment:
       NEXT_TELEMETRY_DISABLED: "1"
-    ports:
-      - "3000:3000"
+    ports: ["3000:3000"]
     volumes:
       - ./web:/workspace
       - web_node_modules:/workspace/node_modules
-    depends_on:
-      - api
+    depends_on: [api]
 volumes:
   postgres_data:
   redis_data:
