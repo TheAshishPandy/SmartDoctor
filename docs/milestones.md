@@ -65,6 +65,36 @@ Compose runs `alembic upgrade head` before starting the development API. The pro
 ### Not production-ready
 The OIDC provider has not been selected/configured. User provisioning, MFA enrollment policy, consent grant/revocation endpoints, organization administration, audit retention/immutability, backup, threat modelling and independent security review remain outstanding. The audit table is not a tamper-proof compliance archive. Use synthetic data only.
 
-## Next milestone
+## Milestone 3 — Patient record ingestion and provenance
 
-**Milestone 3 — Patient record ingestion and provenance:** secure upload initiation, file type/size validation, malware-scanning boundary, encrypted object storage, document metadata, extraction lifecycle, source provenance and patient-controlled record linking. Direct EHR/FHIR connectors will be separately authorized and partner-profile tested.
+**Status: Planned.**
+
+Secure upload initiation, file type/size validation, malware-scanning boundary, encrypted object storage, document metadata, extraction lifecycle, source provenance and patient-controlled record linking. Direct EHR/FHIR connectors will be separately authorized and partner-profile tested.
+
+## Milestone 4 — End-to-End RAG Validation & Reliability
+
+**Tracking issue:** [#3 — Milestone 4](https://github.com/TheAshishPandy/SmartDoctor/issues/3)
+
+**Status: Planned — execution begins after the patient-record ingestion/provenance scope is established.**
+
+### Goal
+Validate and stabilize the complete RAG workspace across Next.js, FastAPI, PostgreSQL, MongoDB, Qdrant and Redis. Prove a repeatable synthetic-data workflow from document upload through evidence-grounded chat.
+
+### Workstreams
+- **Compose infrastructure:** start all six services; verify health checks, service DNS, persistent volumes, environment configuration and Alembic migrations.
+- **Document ingestion:** validate PDF, DOCX, TXT and Markdown; verify extraction, chunking, status transitions, embedding generation, Qdrant indexing, retries and failure cleanup.
+- **Retrieval and chat:** verify patient/organization-scoped retrieval, ranking, evidence references, grounded answers, no-evidence behavior, extractive fallback labeling and MongoDB conversation persistence.
+- **Data isolation:** verify PostgreSQL authorization remains authoritative; verify MongoDB and Qdrant tenant/patient scoping; add cross-patient and cross-organization negative tests; verify Redis failure behavior where used.
+- **Frontend:** verify upload, progress/status, document list, chat, source inspection, conversation continuity, responsive layout and accessible loading/error/empty states.
+- **Automation and docs:** add API integration and upload-to-cited-answer E2E tests; document local setup/troubleshooting; run Ruff, pytest, Alembic checks, frontend lint and production build in CI.
+
+### Acceptance criteria
+- All six Compose services start and become healthy from a clean checkout.
+- A synthetic patient document is uploaded, extracted, chunked, embedded and indexed.
+- A question about that document returns a source-grounded answer with evidence references.
+- Unsupported files, missing evidence and dependency failures return clear, safe errors.
+- Automated tests prove patient/organization isolation across PostgreSQL, MongoDB and Qdrant.
+- CI checks pass and the workflow is reproducible from a clean checkout.
+
+### Safety and exclusions
+Use synthetic patient data only. Do not expose the local stack publicly or upload real patient information. This is engineering validation, not clinical validation or medical-device certification. Production identity-provider setup, scanned-PDF OCR, production object storage, malware scanning, clinical evaluation and deployment hardening remain separate work unless explicitly added.
