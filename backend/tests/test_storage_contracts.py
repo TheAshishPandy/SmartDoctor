@@ -3,7 +3,6 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
-from qdrant_client import models
 
 from app.config import Settings
 from app.storage.chat_mongo import ChatStore
