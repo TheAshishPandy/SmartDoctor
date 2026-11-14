@@ -50,7 +50,7 @@ services:
     build: ./backend
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     environment:
-      APP_ENV: development
+      APP_ENV: ${APP_ENV:-development}
       APP_VERSION: 0.3.0
       CORS_ORIGINS: http://localhost:3000
       DATABASE_URL: postgresql+psycopg://smartdoctor:smartdoctor_dev_only@postgres:5432/smartdoctor
