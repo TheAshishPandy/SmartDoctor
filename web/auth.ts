@@ -5,6 +5,15 @@ const clientId = process.env.AUTH_OIDC_CLIENT_ID;
 const clientSecret = process.env.AUTH_OIDC_CLIENT_SECRET;
 const audience = process.env.AUTH_OIDC_AUDIENCE;
 
+if (process.env.APP_ENV === "production") {
+  if (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32 || process.env.AUTH_SECRET === "local-only-change-this-secret") {
+    throw new Error("Production requires a unique AUTH_SECRET with at least 32 characters.");
+  }
+  if (!issuer || !clientId || !clientSecret) {
+    throw new Error("Production requires AUTH_OIDC_ISSUER, AUTH_OIDC_CLIENT_ID and AUTH_OIDC_CLIENT_SECRET.");
+  }
+}
+
 const providers = issuer && clientId && clientSecret ? [{
   id: "smartdoctor-oidc",
   name: process.env.AUTH_OIDC_PROVIDER_NAME || "Organization account",
