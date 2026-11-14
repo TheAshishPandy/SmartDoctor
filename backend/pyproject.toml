@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "smartdoctor-api"
 version = "0.2.0"
@@ -14,6 +18,9 @@ dependencies = [
 ]
 [project.optional-dependencies]
 dev = ["httpx>=0.27,<1.0", "pytest>=8.3,<9.0", "ruff>=0.8,<1.0"]
+[tool.setuptools.packages.find]
+include = ["app*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
@@ -21,4 +28,4 @@ pythonpath = ["."]
 line-length = 100
 target-version = "py312"
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
+select = ["E4", "E7", "E9", "F", "I", "UP"]
