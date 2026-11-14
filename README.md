@@ -9,22 +9,30 @@ SmartDoctor is an early-stage healthcare platform for patients and clinicians. I
 
 Track acceptance evidence in [docs/milestones.md](docs/milestones.md).
 
-## Implemented
+## Implemented foundation
 - FastAPI and Next.js/React/TypeScript application shells.
-- Docker Compose for PostgreSQL, Redis, API and web.
-- OIDC RS256/JWKS token validation boundary.
-- Patient profile access policy: patient ownership or clinician with active membership, care relationship and consent.
-- SQLAlchemy identity/access/audit schema and Alembic initial migration.
-- Automated authorization tests, including cross-patient denial and revoked/expired consent.
+- PostgreSQL/SQLAlchemy transactional schema and Alembic migrations.
+- OIDC RS256/JWKS token validation boundary and patient access policy.
+- MongoDB chat-history adapter with organization/owner scoped operations.
+- Qdrant patient-RAG adapter with organization + patient filtered retrieval.
+- Docker Compose development services for PostgreSQL, MongoDB, Qdrant, Redis, API and web.
+- Automated authorization and storage-contract tests.
 
-## Target technology
-Next.js, React, TypeScript, FastAPI, PostgreSQL, Alembic, LangGraph, Qdrant, Redis, encrypted object storage, local Ollama development inference, approved cloud model gateway and HL7 FHIR R4 integrations subject to partner profiles.
+## Data ownership
+- **PostgreSQL:** patient, organization, consent, care relationship, appointment, transaction and audit records.
+- **MongoDB:** chat conversations, messages and assistant interaction history.
+- **Qdrant:** embeddings, document chunks and retrieval metadata only.
+- **Encrypted object storage:** original uploaded files and source documents.
+- **Redis:** cache and short-lived coordination only.
+
+See [the storage architecture](docs/data-storage.md) for isolation, security and operational requirements.
 
 ## Run locally
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
+
 Configure a trusted OIDC provider before authenticated requests. Use synthetic data only. Development credentials are not suitable for shared or public environments.
 
 ## Clinical safety
