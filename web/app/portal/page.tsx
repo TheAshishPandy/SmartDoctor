@@ -135,7 +135,7 @@ export default function RoleDashboardPage() {
         <div className="portal-intro-actions"><div className="portal-role-switch" aria-label="Preview dashboard role">{roles.map(r=><button key={r.id} className={role===r.id?"active":""} onClick={()=>setActiveRole(r.id)}><r.icon size={14}/>{r.label}</button>)}</div><div className="portal-editor-actions"><button className={editMode?"active":""} onClick={()=>setEditMode(v=>!v)}><Settings size={13}/>{editMode?"Finish editing":"Customize layout"}</button>{editMode&&<button onClick={resetLayout}>Reset layout</button>}</div></div>
       </div>
       {editMode&&<div className="portal-edit-hint"><b>⠿ Drag widgets to rearrange.</b> Use −W / +W and −H / +H to resize. Layout is saved separately for each role in this browser.</div>}<div className="portal-demo-warning"><AlertCircle size={16}/><div><b>Demo data only — not connected to real patient records.</b>Role switching here previews each dashboard layout. It does not grant permissions or change your account role. Production access must be enforced by FastAPI using verified roles, organization membership, patient relationships and consent.</div></div>
-      <section className="portal-hero">
+      {widget("hero-banner",<section className="portal-hero">
         <div className="portal-hero-copy">
           <span className="portal-hero-kicker"><span/> SMARTER CARE, CONNECTED</span>
           <h2>{role==="patient"?"Your health journey, all in one place":role==="doctor"?"Make every patient interaction count":role==="admin"?"A clearer view of your clinic": "A smoother day starts at the front desk"}</h2>
@@ -148,7 +148,7 @@ export default function RoleDashboardPage() {
           <div className="portal-hero-float float-top"><span><CalendarCheck size={16}/></span><div><b>Care, coordinated</b><small>One connected workspace</small></div></div>
           <div className="portal-hero-float float-bottom"><span><CheckCircle2 size={16}/></span><div><b>Secure by design</b><small>Role-based access</small></div></div>
         </div>
-      </section>
+      </section>)}
       <div className="portal-layout">
         <aside className="portal-nav"><div className="portal-nav-title">{activeRole.label.toUpperCase()} MENU</div>{visibleNav.map(item=>widget("menu-"+item.id,<button key={item.id} className={section===item.id?"active":""} onClick={()=>{setSection(item.id);setQuery("");}}><item.icon size={15}/>{item.label}</button>,"portal-menu-editable"))}<div className="portal-nav-foot"><ShieldCheck size={14}/> Access should be limited by role, organization and patient consent.</div></aside>
         <section className="portal-main">
