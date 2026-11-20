@@ -52,7 +52,7 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-development}
       APP_VERSION: 0.3.0
-      CORS_ORIGINS: http://localhost:3000
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       DATABASE_URL: postgresql+psycopg://smartdoctor:smartdoctor_dev_only@postgres:5432/smartdoctor
       REDIS_URL: redis://redis:6379/0
       MONGODB_URL: mongodb://smartdoctor:smartdoctor_dev_only@mongodb:27017/?authSource=admin
@@ -64,6 +64,20 @@ services:
       UPLOAD_DIRECTORY: /data/uploads
       MAX_UPLOAD_MB: 20
       DEV_AUTH_ENABLED: ${DEV_AUTH_ENABLED:-true}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-smartdoctor-local-auth-secret-change-me-32chars}
+      AUTH_ACCESS_MINUTES: ${AUTH_ACCESS_MINUTES:-15}
+      AUTH_REFRESH_DAYS: ${AUTH_REFRESH_DAYS:-30}
+      AUTH_OTP_MINUTES: ${AUTH_OTP_MINUTES:-10}
+      AUTH_OTP_MAX_ATTEMPTS: ${AUTH_OTP_MAX_ATTEMPTS:-5}
+      AUTH_OTP_RESEND_SECONDS: ${AUTH_OTP_RESEND_SECONDS:-60}
+      AUTH_DEV_OTP_ENABLED: ${AUTH_DEV_OTP_ENABLED:-true}
+      AUTH_ADMIN_EMAILS: ${AUTH_ADMIN_EMAILS:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
       OIDC_ISSUER: ${OIDC_ISSUER:-}
       OIDC_AUDIENCE: ${OIDC_AUDIENCE:-}
       OIDC_JWKS_URL: ${OIDC_JWKS_URL:-}
@@ -83,7 +97,7 @@ services:
   web:
     image: node:22-alpine
     working_dir: /workspace
-    command: sh -c "npm install && npm run dev"
+    command: sh -c "npm run dev"
     environment:
       NEXT_TELEMETRY_DISABLED: "1"
       APP_ENV: ${APP_ENV:-development}
