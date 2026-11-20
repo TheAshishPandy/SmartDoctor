@@ -311,3 +311,14 @@ def me(principal: Principal = Depends(get_current_principal), db: Session = Depe
     if user is None or not user.is_active or not user.is_verified:
         raise HTTPException(status_code=401, detail="Authentication required")
     return _user_payload(user)
+
+
+@router.get("/users")
+def list_users(principal: Principal = Depends(get_current_principal),
+    db: Session = Depends(get_db)) -> list[dict]:
+    if "admin" not in principal.roles:
+        raise HTTPException(status_code=403, detail="Administrator role required")
+    users = db.scalars(select(AuthUser).order_by(AuthUser.created_at.desc()).limit(500)).all()
+    return [{"id": str(user.id), "email": user.email, "display_name": user.display_name,
+        "role": user.role, "is_verified": user.is_verified, "is_active": user.is_active}
+        for user in users]

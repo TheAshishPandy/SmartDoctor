@@ -129,7 +129,7 @@ export default function RoleDashboardPage() {
   return <main className="portal-shell">
     <header className="portal-top">
       <Link href="/" className="portal-brand"><span className="portal-brand-mark"><HeartPulse size={19}/></span>smartdoctor</Link>
-      <div className="portal-top-right"><span className="portal-env"><i/> Synthetic demo environment</span><Bell size={16}/><Link href="/profile" aria-label="Profile"><UserRound size={17}/></Link></div>
+      <div className="portal-top-right"><span className="portal-env"><i/> Synthetic demo environment</span><Link href="/portal/manage" className="portal-link">Manage workspace</Link><Bell size={16}/><Link href="/profile" aria-label="Profile"><UserRound size={17}/></Link></div>
     </header>
     <div className="portal-body">
       <div className="portal-intro"><div><div className="portal-role-label">ROLE-BASED WORKSPACE PREVIEW</div><h1>{activeRole.greeting}</h1><p>{activeRole.subtitle}</p></div>

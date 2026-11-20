@@ -1,7 +1,7 @@
 """Identity, patient access, audit and document metadata models."""
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, Uuid
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, JSON, String, Text, Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -137,3 +137,40 @@ class PatientDocument(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class WorkspaceMenuItem(Base):
+    __tablename__ = "workspace_menu_items"
+    __table_args__ = (Index("ix_workspace_menu_parent_sort", "parent_id", "sort_order"),)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    key: Mapped[str] = mapped_column(String(80), nullable=False, unique=True)
+    label: Mapped[str] = mapped_column(String(100), nullable=False)
+    path: Mapped[str] = mapped_column(String(180), nullable=False)
+    icon: Mapped[str] = mapped_column(String(60), nullable=False, default="layout-dashboard")
+    parent_id: Mapped[UUID | None] = mapped_column(ForeignKey("workspace_menu_items.id"), nullable=True)
+    roles: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class WorkspaceEntry(Base):
+    __tablename__ = "workspace_entries"
+    __table_args__ = (
+        Index("ix_workspace_entries_org_type_created", "organization_id", "resource_type", "created_at"),
+        Index("ix_workspace_entries_patient_type", "patient_id", "resource_type"),
+        Index("ix_workspace_entries_owner_type", "owner_sub", "resource_type"),
+    )
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    resource_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    organization_id: Mapped[UUID | None] = mapped_column(ForeignKey("organizations.id"), nullable=True)
+    patient_id: Mapped[UUID | None] = mapped_column(ForeignKey("patients.id"), nullable=True)
+    owner_sub: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    data: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    status: Mapped[str] = mapped_column(String(40), nullable=False, default="active")
+    is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    updated_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)

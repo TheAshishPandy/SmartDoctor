@@ -37,7 +37,7 @@ function applySessionCookies(response: NextResponse, upstream: Response, accessT
 async function handle(request: NextRequest, context: RouteContext, method: "GET" | "POST" | "PATCH") {
   const { nextauth = [] } = await context.params;
   const path = nextauth.join("/");
-  const allowed = path === "me" || path === "login" || path === "register" ||
+  const allowed = path === "me" || (method === "GET" && path === "users") || path === "login" || path === "register" ||
     path === "verify-email" || path === "resend-otp" || path === "refresh" ||
     path === "logout" || path === "forgot-password" || path === "reset-password" ||
     (method === "PATCH" && /^users\/[0-9a-f-]+\/role$/i.test(path));
@@ -78,9 +78,26 @@ async function handle(request: NextRequest, context: RouteContext, method: "GET"
     return response;
   }
 
-  const upstream = await callApi(path, method, body, cookie);
+  const accessToken = request.cookies.get("smartdoctor_access")?.value;
+  let upstream = await callApi(path, method, body, cookie, accessToken);
+  let rotatedSession: { access_token: string; expires_in: number } | null = null;
+  let rotatedResponse: Response | null = null;
+  if (upstream.status === 401 && cookie && path !== "refresh") {
+    rotatedResponse = await callApi("refresh", "POST", undefined, cookie);
+    if (rotatedResponse.ok) {
+      const session = await rotatedResponse.json();
+      rotatedSession = session;
+      upstream = await callApi(path, method, body, undefined, session.access_token);
+    }
+  }
   const payload = upstream.status === 204 ? null : await upstream.json().catch(() => ({}));
   if (!upstream.ok) return NextResponse.json(payload || { detail: "Authentication request failed." }, { status: upstream.status });
+
+  if (rotatedSession && rotatedResponse) {
+    const response = NextResponse.json(payload, { status: upstream.status, headers: { "cache-control": "no-store" } });
+    applySessionCookies(response, rotatedResponse, rotatedSession.access_token, rotatedSession.expires_in);
+    return response;
+  }
 
   if ((path === "login" || path === "refresh") && payload?.access_token) {
     const response = NextResponse.json({ user: payload.user, expires_in: payload.expires_in }, {
