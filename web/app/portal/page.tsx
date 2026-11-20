@@ -101,9 +101,10 @@ export default function RoleDashboardPage() {
   const [widgetLayouts,setWidgetLayouts]=useState<Record<string,WidgetLayout>>({});
   useEffect(()=>{try{const saved=window.localStorage.getItem("smartdoctor-dashboard-layout-v1");if(saved)setWidgetLayouts(JSON.parse(saved));}catch{}setLayoutReady(true);},[]);
   useEffect(()=>{if(layoutReady)try{window.localStorage.setItem("smartdoctor-dashboard-layout-v1",JSON.stringify(widgetLayouts));}catch{}},[widgetLayouts,layoutReady]);
-  const getLayout=(id:string):WidgetLayout=>widgetLayouts[role+":"+id]||{width:1,height:1,order:0};
+  const defaultOrder=(id:string)=>{if(id.startsWith("metric-")||id.startsWith("quick-"))return Number(id.split("-")[1])||0;if(id==="workflow-chart")return 1;if(id.startsWith("menu-"))return Math.max(0,visibleNav.findIndex(item=>"menu-"+item.id===id));return 0;};
+  const getLayout=(id:string):WidgetLayout=>widgetLayouts[role+":"+id]||{width:1,height:1,order:defaultOrder(id)};
   const resizeWidget=(id:string,axis:"width"|"height",delta:number)=>setWidgetLayouts(prev=>{const key=role+":"+id,current=prev[key]||{width:1,height:1,order:0};return {...prev,[key]:{...current,[axis]:Math.max(1,Math.min(axis==="width"?4:3,current[axis]+delta))}};});
-  const moveWidget=(from:string,to:string)=>setWidgetLayouts(prev=>{const a=role+":"+from,b=role+":"+to,la=prev[a]||{width:1,height:1,order:0},lb=prev[b]||{width:1,height:1,order:0};return {...prev,[a]:{...la,order:lb.order},[b]:{...lb,order:la.order}};});
+  const moveWidget=(from:string,to:string)=>setWidgetLayouts(prev=>{const a=role+":"+from,b=role+":"+to,la=prev[a]||{width:1,height:1,order:defaultOrder(from)},lb=prev[b]||{width:1,height:1,order:defaultOrder(to)};return {...prev,[a]:{...la,order:lb.order},[b]:{...lb,order:la.order}};});
   const resetLayout=()=>setWidgetLayouts(prev=>Object.fromEntries(Object.entries(prev).filter(([key])=>!key.startsWith(role+":"))));
   const widget=(id:string,children:React.ReactNode,className="")=><EditableWidget id={id} editMode={editMode} layout={getLayout(id)} onResize={resizeWidget} onMove={moveWidget} className={className}>{children}</EditableWidget>;
 
