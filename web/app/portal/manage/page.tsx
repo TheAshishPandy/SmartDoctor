@@ -43,7 +43,7 @@ const archiveable=["appointment","appointment_request","patient_intake","check_i
 const text=(v:unknown)=>v==null?"":String(v);
 
 export default function WorkspaceManagementPage(){
- const {user,loading}=useAuth(); const router=useRouter(); const role:Role=user?.role||"patient";
+ const {user,loading}=useAuth(); const router=useRouter(); const role:Role=user?.role==="super_admin"?"admin":(user?.role||"patient");
  const [resource,setResource]=useState<string|null>(null); const [builder,setBuilder]=useState(false);
  const [entries,setEntries]=useState<Entry[]>([]); const [menus,setMenus]=useState<Item[]>([]);
  const [patientId,setPatientId]=useState(""); const [query,setQuery]=useState("");
@@ -54,6 +54,7 @@ export default function WorkspaceManagementPage(){
  const request=useCallback(async(url:string,init?:RequestInit)=>{const response=await fetch(url,{...init,headers:{...(init?.body?{"content-type":"application/json"}:{}),...init?.headers},cache:"no-store"});const body=response.status===204?null:await response.json().catch(()=>null);if(!response.ok)throw new Error(body?.detail||"Request failed");return body;},[]);
  const loadMenus=useCallback(async()=>{try{setMenus(await request(API+"/menus"));}catch(e){toast.error(e instanceof Error?e.message:"Unable to load menus");}},[request]);
  const loadEntries=useCallback(async()=>{if(!moduleConfig)return;setBusy(true);try{const p=new URLSearchParams({resource_type:moduleConfig.resource});if(patientId)p.set("patient_id",patientId);setEntries(await request(API+"/entries?"+p));}catch(e){setEntries([]);toast.error(e instanceof Error?e.message:"Unable to load records");}finally{setBusy(false);}},[moduleConfig,patientId,request]);
+ useEffect(()=>{if(user?.role==="super_admin")router.replace("/portal/super-admin");},[user,router]);
  useEffect(()=>{void loadMenus();},[loadMenus]);
  useEffect(()=>{if(role==="patient")void request(API+"/bootstrap",{method:"POST"}).catch(()=>process.env.NEXT_PUBLIC_DEV_AUTH_ENABLED==="true"?request(API+"/demo/bootstrap",{method:"POST"}):Promise.reject()).then(x=>setPatientId(x.patient_id)).catch(()=>{});},[request,role]);
  useEffect(()=>{if(moduleConfig)void loadEntries();},[moduleConfig,loadEntries]);

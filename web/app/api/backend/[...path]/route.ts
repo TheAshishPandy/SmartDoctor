@@ -27,7 +27,10 @@ function refreshValue(upstream: Response): string | null {
 async function forward(request: NextRequest, context: RouteContext) {
   const { path } = await context.params;
   const apiPath = "/" + path.map(segment => encodeURIComponent(segment)).join("/");
-  const allowed = apiPath.startsWith("/api/v1/workspace/") || apiPath.startsWith("/api/v1/patients/");
+  const allowed = apiPath.startsWith("/api/v1/workspace/") || apiPath.startsWith("/api/v1/patients/") ||
+    apiPath.startsWith("/api/v1/super-admin/") || apiPath.startsWith("/api/v1/organizations/") ||
+    apiPath.startsWith("/api/v1/clinic/") || apiPath === "/api/v1/auth/users" ||
+    apiPath.startsWith("/api/v1/auth/users/");
   if (!allowed) return NextResponse.json({ detail: "API route is not available through this proxy." }, { status: 404 });
 
   const accessToken = request.cookies.get("smartdoctor_access")?.value;
@@ -103,3 +106,4 @@ async function forward(request: NextRequest, context: RouteContext) {
 
 export const GET = forward;
 export const POST = forward;
+export const PATCH = forward;

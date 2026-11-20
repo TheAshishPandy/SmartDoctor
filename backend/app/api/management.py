@@ -231,7 +231,7 @@ REQUIRED_FIELDS = {
     "appointment_request": {"preferred_date", "reason"},
     "profile_note": {"full_name"},
     "patient_intake": {"full_name"},
-    "appointment": {"scheduled_at", "visit_type"},
+    "appointment": {"scheduled_at"},
     "check_in": {"arrival_time"},
     "clinical_note": {"title", "body"},
     "encounter": {"encounter_date", "chief_complaint", "assessment"},
@@ -268,9 +268,9 @@ def _validate_entry(resource_type: str, data: dict) -> None:
 def create_entry(payload: EntryCreate, principal: Principal = Depends(get_current_principal),
     db: Session = Depends(get_db)) -> dict:
     role = _role(principal)
-    _validate_entry(payload.resource_type, payload.data)
     patient_id, owner_sub = _authorize_entry_scope(db, principal, role,
         payload.resource_type, payload.patient_id)
+    _validate_entry(payload.resource_type, payload.data)
     org_id = None
     if role == "patient":
         patient = db.get(Patient, patient_id)

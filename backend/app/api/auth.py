@@ -75,7 +75,7 @@ def _access_token(user: AuthUser) -> str:
     now = _now()
     return jwt.encode({"sub": str(user.id), "email": user.email, "name": user.display_name,
         "roles": [user.role], "iat": now, "exp": now + timedelta(minutes=cfg.auth_access_minutes),
-        "typ": "access"}, _require_secret(), algorithm="HS256")
+        "jti": secrets.token_urlsafe(12), "typ": "access"}, _require_secret(), algorithm="HS256")
 
 
 def _deliver_email(to_email: str, subject: str, body: str) -> None:
@@ -160,8 +160,10 @@ async def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> d
     email = payload.email.lower()
     if db.scalar(select(AuthUser).where(AuthUser.email == email)):
         return {"message": "If this address can be registered, a verification code will be sent."}
-    bootstrap_admins = {item.strip().lower() for item in get_settings().auth_admin_emails.split(",") if item.strip()}
-    initial_role = "admin" if email in bootstrap_admins else "patient"
+    cfg = get_settings()
+    super_admins = {item.strip().lower() for item in cfg.auth_super_admin_emails.split(",") if item.strip()}
+    bootstrap_admins = {item.strip().lower() for item in cfg.auth_admin_emails.split(",") if item.strip()}
+    initial_role = "super_admin" if email in super_admins else ("admin" if email in bootstrap_admins else "patient")
     user = AuthUser(email=email, password_hash=password_hasher.hash(payload.password),
         display_name=payload.display_name.strip(), role=initial_role, is_verified=False)
     db.add(user)
@@ -217,6 +219,14 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_verified:
         raise HTTPException(status_code=403, detail="Please verify your email before signing in")
+    cfg = get_settings()
+    super_admins = {item.strip().lower() for item in cfg.auth_super_admin_emails.split(",") if item.strip()}
+    bootstrap_admins = {item.strip().lower() for item in cfg.auth_admin_emails.split(",") if item.strip()}
+    if user.email in super_admins:
+        user.role = "super_admin"
+    elif user.role == "super_admin":
+        user.role = "admin" if user.email in bootstrap_admins else "patient"
+    db.commit()
     _issue_refresh(db, user, response)
     return {"access_token": _access_token(user), "token_type": "bearer", "expires_in": get_settings().auth_access_minutes * 60, "user": _user_payload(user)}
 
@@ -250,6 +260,7 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)) 
             session.revoked_at = _now()
             db.commit()
     response.delete_cookie(REFRESH_COOKIE, path="/api/v1/auth")
+    response.status_code = 204
     return response
 
 
@@ -287,15 +298,15 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
 @router.patch("/users/{user_id}/role")
 def update_user_role(user_id: UUID, payload: RoleUpdateRequest,
     principal: Principal = Depends(get_current_principal), db: Session = Depends(get_db)) -> dict:
-    if "admin" not in principal.roles:
-        raise HTTPException(status_code=403, detail="Administrator role required")
+    if "super_admin" not in principal.roles:
+        raise HTTPException(status_code=403, detail="Platform Super Admin access required")
     user = db.get(AuthUser, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     previous_role = user.role
     user.role = payload.role
     from app.models import AuditEvent
-    db.add(AuditEvent(actor_sub=principal.subject, actor_role="admin", action="auth.role.change",
+    db.add(AuditEvent(actor_sub=principal.subject, actor_role="super_admin", action="auth.role.change",
         resource_type="auth_user", resource_id=str(user.id), outcome="allowed"))
     db.commit()
     return {"user_id": str(user.id), "previous_role": previous_role, "role": user.role}
@@ -316,8 +327,8 @@ def me(principal: Principal = Depends(get_current_principal), db: Session = Depe
 @router.get("/users")
 def list_users(principal: Principal = Depends(get_current_principal),
     db: Session = Depends(get_db)) -> list[dict]:
-    if "admin" not in principal.roles:
-        raise HTTPException(status_code=403, detail="Administrator role required")
+    if "super_admin" not in principal.roles:
+        raise HTTPException(status_code=403, detail="Platform Super Admin access required")
     users = db.scalars(select(AuthUser).order_by(AuthUser.created_at.desc()).limit(500)).all()
     return [{"id": str(user.id), "email": user.email, "display_name": user.display_name,
         "role": user.role, "is_verified": user.is_verified, "is_active": user.is_active}

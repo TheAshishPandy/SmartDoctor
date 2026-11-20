@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     auth_otp_resend_seconds: int = 60
     auth_dev_otp_enabled: bool = True
     auth_admin_emails: str = ""
+    auth_super_admin_emails: str = ""
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_username: str = ""

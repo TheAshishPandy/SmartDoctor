@@ -7,7 +7,7 @@ export type AuthUser = {
   id: string;
   email: string;
   display_name: string;
-  role: "patient" | "doctor" | "admin" | "receptionist";
+  role: "patient" | "doctor" | "admin" | "receptionist" | "super_admin";
   is_verified: boolean;
 };
 

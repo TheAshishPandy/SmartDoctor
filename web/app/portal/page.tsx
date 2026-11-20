@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/components/auth-provider";
 import Image from "next/image";
 import {
   Activity, CalendarDays, ClipboardList, FileText, HeartPulse, LayoutDashboard,
@@ -94,6 +95,7 @@ function EditableWidget({id,editMode,layout,onResize,onMove,children,className="
 }
 
 export default function RoleDashboardPage() {
+  const { user } = useAuth();
   const [role,setRole]=useState<Role>("admin");
   const [section,setSection]=useState<Section>("overview");
   const [query,setQuery]=useState("");
@@ -129,7 +131,7 @@ export default function RoleDashboardPage() {
   return <main className="portal-shell">
     <header className="portal-top">
       <Link href="/" className="portal-brand"><span className="portal-brand-mark"><HeartPulse size={19}/></span>smartdoctor</Link>
-      <div className="portal-top-right"><span className="portal-env"><i/> Synthetic demo environment</span><Link href="/portal/manage" className="portal-link">Manage workspace</Link><Bell size={16}/><Link href="/profile" aria-label="Profile"><UserRound size={17}/></Link></div>
+      <div className="portal-top-right"><span className="portal-env"><i/> Synthetic demo environment</span>{user?.role==="patient"&&<Link href="/portal/clinic-assistant" className="portal-link">Clinic assistant</Link>}{user?.role==="admin"&&<Link href="/portal/organization" className="portal-link">My Clinic</Link>}<Link href="/portal/manage" className="portal-link">Manage workspace</Link>{user?.role==="super_admin"&&<Link href="/portal/super-admin" className="portal-link">Super Admin</Link>}<Bell size={16}/><Link href="/profile" aria-label="Profile"><UserRound size={17}/></Link></div>
     </header>
     <div className="portal-body">
       <div className="portal-intro"><div><div className="portal-role-label">ROLE-BASED WORKSPACE PREVIEW</div><h1>{activeRole.greeting}</h1><p>{activeRole.subtitle}</p></div>
