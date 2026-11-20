@@ -14,17 +14,21 @@ router = APIRouter(prefix="/api/v1/workspace", tags=["workspace-management"])
 VALID_ROLES = {"patient", "doctor", "admin", "receptionist"}
 ROLE_TYPES = {
     "patient": {"appointment_request", "profile_note"},
-    "doctor": {"clinical_note", "care_plan", "follow_up"},
+    "doctor": {"clinical_note", "encounter", "diagnosis", "vital", "allergy", "condition",
+        "prescription", "medication", "lab_order", "lab_result", "care_plan", "follow_up"},
     "receptionist": {"appointment", "patient_intake", "check_in"},
     "admin": {"appointment", "patient_intake", "check_in", "department", "clinic_notice"},
 }
 ROLE_READ_TYPES = {
-    "patient": {"appointment_request", "profile_note", "appointment", "clinical_note", "care_plan", "follow_up"},
-    "doctor": {"clinical_note", "care_plan", "follow_up"},
+    "patient": {"appointment_request", "profile_note", "appointment", "clinical_note", "encounter",
+        "diagnosis", "vital", "allergy", "condition", "prescription", "medication", "lab_order",
+        "lab_result", "care_plan", "follow_up"},
+    "doctor": ROLE_TYPES["doctor"] | {"appointment", "patient_intake", "check_in", "department"},
     "receptionist": {"appointment", "patient_intake", "check_in", "department"},
-    "admin": ROLE_TYPES["admin"],
+    "admin": ROLE_TYPES["admin"] | {"clinical_note", "encounter", "diagnosis", "vital", "allergy",
+        "condition", "prescription", "medication", "lab_order", "lab_result", "care_plan", "follow_up"},
 }
-ARCHIVABLE_TYPES = {"appointment", "appointment_request", "patient_intake", "check_in", "department", "clinic_notice"}
+ARCHIVABLE_TYPES = {"appointment", "appointment_request", "patient_intake", "check_in", "department", "clinic_notice", "lab_order"}
 
 
 def _role(principal: Principal) -> str:
@@ -223,10 +227,48 @@ def list_entries(resource_type: str = Query(min_length=2, max_length=50),
     return [_entry_json(row) for row in rows]
 
 
+REQUIRED_FIELDS = {
+    "appointment_request": {"preferred_date", "reason"},
+    "profile_note": {"full_name"},
+    "patient_intake": {"full_name"},
+    "appointment": {"scheduled_at", "visit_type"},
+    "check_in": {"arrival_time"},
+    "clinical_note": {"title", "body"},
+    "encounter": {"encounter_date", "chief_complaint", "assessment"},
+    "diagnosis": {"code", "description"},
+    "vital": {"measured_at"},
+    "allergy": {"substance", "reaction"},
+    "condition": {"name", "status"},
+    "prescription": {"medication_name", "instructions", "prescribed_at"},
+    "medication": {"medication_name", "status"},
+    "lab_order": {"test_name", "ordered_at"},
+    "lab_result": {"test_name", "result", "resulted_at"},
+    "care_plan": {"title", "goals"},
+    "follow_up": {"title", "due_date"},
+    "department": {"name"},
+    "clinic_notice": {"title", "message"},
+}
+
+
+def _validate_entry(resource_type: str, data: dict) -> None:
+    required = REQUIRED_FIELDS.get(resource_type)
+    if required is None:
+        raise HTTPException(status_code=422, detail="Unsupported workspace resource type")
+    missing = sorted(key for key in required if not str(data.get(key, "")).strip())
+    if missing:
+        raise HTTPException(status_code=422, detail="Required fields missing: " + ", ".join(missing))
+    if len(str(data).encode("utf-8")) > 65536:
+        raise HTTPException(status_code=413, detail="Record data exceeds the 64 KB limit")
+    if resource_type in {"appointment", "appointment_request"}:
+        if data.get("status") not in (None, "requested", "scheduled", "confirmed", "checked_in", "in_progress", "completed", "cancelled", "no_show"):
+            raise HTTPException(status_code=422, detail="Unsupported appointment status")
+
+
 @router.post("/entries", status_code=201)
 def create_entry(payload: EntryCreate, principal: Principal = Depends(get_current_principal),
     db: Session = Depends(get_db)) -> dict:
     role = _role(principal)
+    _validate_entry(payload.resource_type, payload.data)
     patient_id, owner_sub = _authorize_entry_scope(db, principal, role,
         payload.resource_type, payload.patient_id)
     org_id = None
@@ -261,6 +303,10 @@ def update_entry(entry_id: UUID, payload: EntryUpdate,
     if role in {"admin", "receptionist"} and row.organization_id != _staff_org(db, principal, role):
         raise HTTPException(status_code=404, detail="Workspace record not found")
     changes = payload.model_dump(exclude_unset=True)
+    if changes.get("data") is not None:
+        merged = {**row.data, **changes["data"]}
+        _validate_entry(row.resource_type, merged)
+        changes["data"] = merged
     for key, value in changes.items():
         setattr(row, key, value)
     row.updated_by = principal.subject
