@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Activity, CalendarDays, ClipboardList, FileText, HeartPulse, LayoutDashboard,
-  Search, ShieldCheck, Stethoscope, Users, UserRound, Clock3, FlaskConical,
-  Pill, Settings, Bell, ChevronDown, ArrowUpRight, CheckCircle2, AlertCircle,
+  Search, ShieldCheck, Stethoscope, Users, UserRound, Clock3,
+  Pill, Settings, Bell, ArrowUpRight, CheckCircle2, AlertCircle,
   Building2, ClipboardCheck, UserPlus, CalendarCheck, ChartNoAxesCombined,
 } from "lucide-react";
 
@@ -41,11 +42,11 @@ const records = [
   { title:"Medication reconciliation", patient:"Liam Garcia", kind:"Medication", date:"Nov 19, 2026", status:"Reviewed" },
 ];
 const staff = [
-  { name:"Maya Chen", initials:"MC", role:"Cardiology", email:"maya.chen@demo.smartdoctor.test", status:"Active" },
-  { name:"Ethan Patel", initials:"EP", role:"Internal medicine", email:"ethan.patel@demo.smartdoctor.test", status:"Active" },
-  { name:"Sarah Kim", initials:"SK", role:"Family medicine", email:"sarah.kim@demo.smartdoctor.test", status:"Active" },
-  { name:"Taylor Reed", initials:"TR", role:"Receptionist", email:"taylor.reed@demo.smartdoctor.test", status:"Active" },
-  { name:"Morgan Lee", initials:"ML", role:"Receptionist", email:"morgan.lee@demo.smartdoctor.test", status:"Invited" },
+  { name:"Maya Chen", initials:"MC", role:"Cardiology", email:"maya.chen@smartdoctor-demo.com", status:"Active" },
+  { name:"Ethan Patel", initials:"EP", role:"Internal medicine", email:"ethan.patel@smartdoctor-demo.com", status:"Active" },
+  { name:"Sarah Kim", initials:"SK", role:"Family medicine", email:"sarah.kim@smartdoctor-demo.com", status:"Active" },
+  { name:"Taylor Reed", initials:"TR", role:"Receptionist", email:"taylor.reed@smartdoctor-demo.com", status:"Active" },
+  { name:"Morgan Lee", initials:"ML", role:"Receptionist", email:"morgan.lee@smartdoctor-demo.com", status:"Invited" },
 ];
 const audit = [
   { action:"Patient appointment checked in", actor:"Taylor Reed", scope:"PT-10039", time:"Today, 10:12 AM", status:"Allowed" },
@@ -57,7 +58,7 @@ const audit = [
 const navByRole: Record<Role, { id: Section; label: string; icon: typeof LayoutDashboard }[]> = {
   patient: [{id:"overview",label:"Overview",icon:LayoutDashboard},{id:"appointments",label:"My appointments",icon:CalendarDays},{id:"records",label:"Medical records",icon:FileText}],
   doctor: [{id:"overview",label:"Overview",icon:LayoutDashboard},{id:"patients",label:"My patients",icon:Users},{id:"appointments",label:"Schedule",icon:CalendarDays},{id:"records",label:"Clinical records",icon:FileText}],
-  admin: [{id:"overview",label:"Overview",icon:LayoutDashboard},{id:"patients",label:"Patients",icon:Users},{id:"appointments",label:"Appointments",icon:CalendarDays},{id:"team",label:"Team & roles",icon:Building2},{id:"audit",label:"Audit activity",icon:ShieldCheck}],
+  admin: [{id:"overview",label:"Overview",icon:LayoutDashboard},{id:"patients",label:"Patients",icon:Users},{id:"appointments",label:"Appointments",icon:CalendarDays},{id:"team",label:"Team & roles",icon:Building2},{id:"records",label:"Clinical records",icon:FileText},{id:"audit",label:"Audit activity",icon:ShieldCheck}],
   receptionist: [{id:"overview",label:"Front desk",icon:LayoutDashboard},{id:"patients",label:"Patient directory",icon:Users},{id:"appointments",label:"Appointments",icon:CalendarDays}],
 };
 
@@ -106,7 +107,7 @@ export default function RoleDashboardPage() {
   const resizeWidget=(id:string,axis:"width"|"height",delta:number)=>setWidgetLayouts(prev=>{const key=role+":"+id,current=prev[key]||{width:1,height:1,order:0};return {...prev,[key]:{...current,[axis]:Math.max(1,Math.min(axis==="width"?4:3,current[axis]+delta))}};});
   const moveWidget=(from:string,to:string)=>setWidgetLayouts(prev=>{const a=role+":"+from,b=role+":"+to,la=prev[a]||{width:from.startsWith("menu-")?4:1,height:1,order:defaultOrder(from)},lb=prev[b]||{width:to.startsWith("menu-")?4:1,height:1,order:defaultOrder(to)};return {...prev,[a]:{...la,order:lb.order},[b]:{...lb,order:la.order}};});
   const resetLayout=()=>setWidgetLayouts(prev=>Object.fromEntries(Object.entries(prev).filter(([key])=>!key.startsWith(role+":"))));
-  const widget=(id:string,children:React.ReactNode,className="")=><EditableWidget id={id} editMode={editMode} layout={getLayout(id)} onResize={resizeWidget} onMove={moveWidget} className={className}>{children}</EditableWidget>;
+  const widget=(id:string,children:React.ReactNode,className="")=><EditableWidget key={id} id={id} editMode={editMode} layout={getLayout(id)} onResize={resizeWidget} onMove={moveWidget} className={className}>{children}</EditableWidget>;
 
   const activeRole=roles.find(r=>r.id===role)!;
   const visibleNav=navByRole[role];
@@ -135,29 +136,31 @@ export default function RoleDashboardPage() {
         <div className="portal-intro-actions"><div className="portal-role-switch" aria-label="Preview dashboard role">{roles.map(r=><button key={r.id} className={role===r.id?"active":""} onClick={()=>setActiveRole(r.id)}><r.icon size={14}/>{r.label}</button>)}</div><div className="portal-editor-actions"><button className={editMode?"active":""} onClick={()=>setEditMode(v=>!v)}><Settings size={13}/>{editMode?"Finish editing":"Customize layout"}</button>{editMode&&<button onClick={resetLayout}>Reset layout</button>}</div></div>
       </div>
       {editMode&&<div className="portal-edit-hint"><b>⠿ Drag widgets to rearrange.</b> Use −W / +W and −H / +H to resize. Layout is saved separately for each role in this browser.</div>}<div className="portal-demo-warning"><AlertCircle size={16}/><div><b>Demo data only — not connected to real patient records.</b>Role switching here previews each dashboard layout. It does not grant permissions or change your account role. Production access must be enforced by FastAPI using verified roles, organization membership, patient relationships and consent.</div></div>
-      {widget("hero-banner",<section className="portal-hero">
+
+      <div className="portal-layout">
+        <aside className="portal-nav"><div className="portal-nav-title">{activeRole.label.toUpperCase()} MENU</div>{visibleNav.map(item=>widget("menu-"+item.id,<button key={item.id} className={section===item.id?"active":""} onClick={()=>{setSection(item.id);setQuery("");}}><item.icon size={15}/>{item.label}</button>,"portal-menu-editable"))}<div className="portal-nav-foot"><ShieldCheck size={14}/> Access should be limited by role, organization and patient consent.</div></aside>
+        <section className="portal-main">
+                {widget("hero-banner",<section className="portal-hero">
         <div className="portal-hero-copy">
           <span className="portal-hero-kicker"><span/> SMARTER CARE, CONNECTED</span>
           <h2>{role==="patient"?"Your health journey, all in one place":role==="doctor"?"Make every patient interaction count":role==="admin"?"A clearer view of your clinic": "A smoother day starts at the front desk"}</h2>
           <p>{role==="patient"?"Stay on top of appointments, records and the people supporting your care.":role==="doctor"?"Your patients, schedule and clinical work — organized in one workspace.":role==="admin"?"Monitor clinic activity, support your teams and keep operations moving.":"Coordinate appointments, welcome patients and keep the clinic running smoothly."}</p>
           <div className="portal-hero-actions"><button onClick={()=>setSection(role==="patient"?"appointments":role==="doctor"||role==="receptionist"?"patients":"team")}>{role==="patient"?"View appointments":role==="doctor"?"Open patient panel":role==="admin"?"Manage clinic team":"Open patient directory"} <ArrowUpRight size={14}/></button><span><ShieldCheck size={14}/> Privacy-first workspace</span></div>
         </div>
-        <div className="portal-hero-art" aria-hidden="true">
+        <div className="portal-hero-art" aria-label="Healthcare team illustration">
           <div className="portal-hero-orbit orbit-a"/><div className="portal-hero-orbit orbit-b"/>
-          <div className="portal-hero-cross"><HeartPulse size={54}/></div>
+          <div className="portal-doctor-photo portal-brain-art"><Image src="/images/brain-dna.jpg" alt="Glowing blue 3D medical brain with DNA illustration" width={720} height={420} priority/><span className="portal-photo-glow"/></div>
           <div className="portal-hero-float float-top"><span><CalendarCheck size={16}/></span><div><b>Care, coordinated</b><small>One connected workspace</small></div></div>
           <div className="portal-hero-float float-bottom"><span><CheckCircle2 size={16}/></span><div><b>Secure by design</b><small>Role-based access</small></div></div>
+          <div className="portal-glass-chip"><HeartPulse size={15}/><span>Connected care</span><i/></div>
         </div>
       </section>)}
-      <div className="portal-layout">
-        <aside className="portal-nav"><div className="portal-nav-title">{activeRole.label.toUpperCase()} MENU</div>{visibleNav.map(item=>widget("menu-"+item.id,<button key={item.id} className={section===item.id?"active":""} onClick={()=>{setSection(item.id);setQuery("");}}><item.icon size={15}/>{item.label}</button>,"portal-menu-editable"))}<div className="portal-nav-foot"><ShieldCheck size={14}/> Access should be limited by role, organization and patient consent.</div></aside>
-        <section className="portal-main">
           <div className="portal-section-head"><div><h2>{heading}</h2><p>Clinic workspace · Friday, November 21, 2026</p></div><span className="portal-period"><Clock3 size={11} style={{display:"inline",marginRight:5}}/>Last 30 days</span></div>
           {section==="overview"&&<>
             <div className="portal-kpis">{kpis.map((k,i)=>widget("metric-"+i,<article className="portal-kpi"><div className="portal-kpi-top">{k.label}<span className="portal-kpi-icon"><MetricIcon name={k.icon}/></span></div><strong>{k.value}</strong><small className={i===0&&role==="admin"?"up":""}>{k.note}</small></article>))}</div>
             <div className="portal-grid-two">
               {widget("activity-chart",<article className="portal-card"><div className="portal-card-title"><div><h3>{role==="patient"?"Your health activity":"Activity overview"}</h3><p>Illustrative activity over the last 7 days.</p></div><span className="portal-period">This week</span></div>
-                <svg className="portal-chart" viewBox="0 0 520 190" role="img" aria-label="Sample weekly activity chart"><line className="gridline" x1="36" y1="25" x2="505" y2="25"/><line className="gridline" x1="36" y1="68" x2="505" y2="68"/><line className="gridline" x1="36" y1="111" x2="505" y2="111"/><line className="gridline" x1="36" y1="154" x2="505" y2="154"/>{[["Mon",65,37],["Tue",105,55],["Wed",82,46],["Thu",126,66],["Fri",151,88],["Sat",95,42],["Sun",72,31]].map(([day,a,b],i)=><g key={String(day)}><rect x={48+i*66} y={154-Number(a)} width="20" height={Number(a)} rx="4" fill="#0b8b80"/><rect x={71+i*66} y={154-Number(b)} width="14" height={Number(b)} rx="3" fill="#b7d9d5"/><text x={65+i*66} y="174" textAnchor="middle">{day}</text></g>)}</svg>
+                <svg className="portal-chart portal-line-chart" viewBox="0 0 620 230" role="img" aria-label="Sample weekly activity trend chart"><defs><linearGradient id="activityFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#5798ff" stopOpacity=".28"/><stop offset="100%" stopColor="#5798ff" stopOpacity=".015"/></linearGradient><linearGradient id="previousFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#5bd5c4" stopOpacity=".2"/><stop offset="100%" stopColor="#5bd5c4" stopOpacity="0"/></linearGradient></defs><g className="chart-grid"><line x1="38" y1="30" x2="600" y2="30"/><line x1="38" y1="78" x2="600" y2="78"/><line x1="38" y1="126" x2="600" y2="126"/><line x1="38" y1="174" x2="600" y2="174"/></g><path className="chart-area chart-area-secondary" d="M42 155 C78 132 96 145 125 135 S180 151 210 128 S260 138 292 119 S350 126 378 105 S430 120 460 91 S520 108 590 75 L590 174 L42 174 Z"/><path className="chart-area" d="M42 144 C78 126 96 132 125 105 S180 122 210 91 S260 103 292 68 S350 88 378 51 S430 76 460 42 S520 64 590 28 L590 174 L42 174 Z"/><path className="chart-line chart-line-secondary" d="M42 155 C78 132 96 145 125 135 S180 151 210 128 S260 138 292 119 S350 126 378 105 S430 120 460 91 S520 108 590 75"/><path className="chart-line" d="M42 144 C78 126 96 132 125 105 S180 122 210 91 S260 103 292 68 S350 88 378 51 S430 76 460 42 S520 64 590 28"/><circle className="chart-point" cx="378" cy="51" r="5"/><g className="chart-labels"><text x="42" y="205">Mon</text><text x="132" y="205">Tue</text><text x="222" y="205">Wed</text><text x="312" y="205">Thu</text><text x="402" y="205">Fri</text><text x="492" y="205">Sat</text><text x="578" y="205">Sun</text></g></svg>
                 <div className="portal-legend"><span><i/>Appointments / activity</span><span><i className="secondary"/>Completed / reviewed</span></div>
               </article>)}
               {widget("workflow-chart",<article className="portal-card"><div className="portal-card-title"><div><h3>{role==="patient"?"Care plan progress":"Operational breakdown"}</h3><p>Sample workflow completion.</p></div><ChartNoAxesCombined size={16} color="#0b8b80"/></div>
