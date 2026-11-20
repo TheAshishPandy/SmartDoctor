@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Activity, CalendarDays, ClipboardList, FileText, HeartPulse, LayoutDashboard,
@@ -81,10 +81,32 @@ function Status({value}:{value:string}) {
   return <span className={`portal-status ${cls}`}>{value}</span>;
 }
 
+type WidgetLayout = { width:number; height:number; order:number };
+function EditableWidget({id,editMode,layout,onResize,onMove,children,className=""}:{id:string;editMode:boolean;layout:WidgetLayout;onResize:(id:string,axis:"width"|"height",delta:number)=>void;onMove:(from:string,to:string)=>void;children:React.ReactNode;className?:string}) {
+  return <div className={"portal-editable "+(editMode?"is-editing ":"")+className} style={{"--widget-width":layout.width,"--widget-height":layout.height,order:layout.order} as React.CSSProperties} draggable={editMode}
+    onDragStart={e=>{e.dataTransfer.setData("text/smartdoctor-widget",id);e.dataTransfer.effectAllowed="move";}}
+    onDragOver={e=>{if(editMode)e.preventDefault();}}
+    onDrop={e=>{if(!editMode)return;e.preventDefault();const from=e.dataTransfer.getData("text/smartdoctor-widget");if(from&&from!==id)onMove(from,id);}}>
+    {editMode&&<div className="portal-widget-tools"><span className="portal-drag-grip">⠿ <small>Move</small></span><span className="portal-size-tools"><button type="button" onClick={()=>onResize(id,"width",-1)}>−W</button><button type="button" onClick={()=>onResize(id,"width",1)}>+W</button><button type="button" onClick={()=>onResize(id,"height",-1)}>−H</button><button type="button" onClick={()=>onResize(id,"height",1)}>+H</button></span></div>}
+    <div className="portal-editable-content">{children}</div>
+  </div>;
+}
+
 export default function RoleDashboardPage() {
   const [role,setRole]=useState<Role>("admin");
   const [section,setSection]=useState<Section>("overview");
   const [query,setQuery]=useState("");
+  const [editMode,setEditMode]=useState(false);
+  const [layoutReady,setLayoutReady]=useState(false);
+  const [widgetLayouts,setWidgetLayouts]=useState<Record<string,WidgetLayout>>({});
+  useEffect(()=>{try{const saved=window.localStorage.getItem("smartdoctor-dashboard-layout-v1");if(saved)setWidgetLayouts(JSON.parse(saved));}catch{}setLayoutReady(true);},[]);
+  useEffect(()=>{if(layoutReady)try{window.localStorage.setItem("smartdoctor-dashboard-layout-v1",JSON.stringify(widgetLayouts));}catch{}},[widgetLayouts,layoutReady]);
+  const getLayout=(id:string):WidgetLayout=>widgetLayouts[role+":"+id]||{width:1,height:1,order:0};
+  const resizeWidget=(id:string,axis:"width"|"height",delta:number)=>setWidgetLayouts(prev=>{const key=role+":"+id,current=prev[key]||{width:1,height:1,order:0};return {...prev,[key]:{...current,[axis]:Math.max(1,Math.min(axis==="width"?4:3,current[axis]+delta))}};});
+  const moveWidget=(from:string,to:string)=>setWidgetLayouts(prev=>{const a=role+":"+from,b=role+":"+to,la=prev[a]||{width:1,height:1,order:0},lb=prev[b]||{width:1,height:1,order:0};return {...prev,[a]:{...la,order:lb.order},[b]:{...lb,order:la.order}};});
+  const resetLayout=()=>setWidgetLayouts(prev=>Object.fromEntries(Object.entries(prev).filter(([key])=>!key.startsWith(role+":"))));
+  const widget=(id:string,children:React.ReactNode,className="")=><EditableWidget id={id} editMode={editMode} layout={getLayout(id)} onResize={resizeWidget} onMove={moveWidget} className={className}>{children}</EditableWidget>;
+
   const activeRole=roles.find(r=>r.id===role)!;
   const visibleNav=navByRole[role];
   const setActiveRole=(next:Role)=>{setRole(next);setSection("overview");setQuery("");};
