@@ -1,70 +1,38 @@
-import { NextResponse } from "next/server";
-import { auth } from "./auth";
+import { NextRequest, NextResponse } from "next/server";
 
-const publicPaths = new Set([
-  "/login",
-  "/register",
-  "/forgot-password",
-]);
+const publicPaths = new Set(["/login", "/register", "/forgot-password"]);
 
-export default auth((request) => {
+export default function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-
-  const demoEnabled =
-    process.env.APP_ENV === "development" &&
-    process.env.DEV_AUTH_ENABLED === "true";
-
+  const demoEnabled = process.env.APP_ENV === "development" && process.env.DEV_AUTH_ENABLED === "true";
   const isApi = pathname.startsWith("/api/backend/");
   const isPublicPath = publicPaths.has(pathname);
-  const sessionError = request.auth?.error;
-  const isAuthenticated =
-    Boolean(request.auth?.user) && !sessionError;
+  const authenticated = Boolean(
+    request.cookies.get("smartdoctor_access")?.value ||
+    request.cookies.get("smartdoctor_refresh")?.value
+  );
 
-  // Authentication pages must be reachable without an active session.
-  // This check must run before the protected-route redirect.
   if (isPublicPath) {
-    if (isAuthenticated) {
-      return NextResponse.redirect(new URL("/", request.nextUrl));
-    }
-
+    if (authenticated) return NextResponse.redirect(new URL("/", request.nextUrl));
     return NextResponse.next();
   }
 
-  // Preserve the local synthetic-demo bypass in development.
-  if (demoEnabled && !sessionError) {
-    return NextResponse.next();
+  // The demo workspace remains available only in explicitly enabled local development.
+  if (demoEnabled && !authenticated) return NextResponse.next();
+
+  if (isApi && !authenticated) {
+    return NextResponse.json({ detail: "Authentication required." }, { status: 401 });
   }
 
-  // Return JSON 401 responses for protected backend API requests.
-  if (isApi && !isAuthenticated) {
-    return NextResponse.json(
-      {
-        detail: sessionError
-          ? "Your sign-in session expired. Please sign in again."
-          : "Authentication required.",
-      },
-      { status: 401 },
-    );
-  }
-
-  // Redirect unauthenticated users to login with their original destination.
-  if (!isAuthenticated) {
+  if (!authenticated) {
     const login = new URL("/login", request.nextUrl);
-    const callbackUrl = pathname + request.nextUrl.search;
-
-    // Do not create a callback that points back to the login page.
-    if (pathname !== "/login") {
-      login.searchParams.set("callbackUrl", callbackUrl);
-    }
-
+    login.searchParams.set("callbackUrl", pathname + request.nextUrl.search);
     return NextResponse.redirect(login);
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
-  matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
 };
