@@ -57,7 +57,15 @@ class Organization(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
     chatbot_config: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    ui_theme: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class PlatformSetting(Base):
+    __tablename__ = "platform_settings"
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
 
 class Membership(Base):

@@ -1,4 +1,4 @@
-# SmartDoctor Global UI Theme System
+﻿# SmartDoctor Global UI Theme System
 
 **Status:** Design specification  
 **Reference:** [Murmura demo](https://demo.codeandchill.store/murmura/) and [Code and Chill catalogue](https://codeandchill.store/)  
@@ -18,7 +18,7 @@ The public Code and Chill catalogue was discoverable and indexed. It describes M
 - Information hierarchy first: patient identity, appointment status, alerts, and next action must be scannable.
 - Consistent shell: sidebar, top bar, page header, breadcrumbs, content grid, notifications, responsive mobile navigation.
 - Layered surfaces: subtle elevation, restrained translucency, soft borders, and low-noise backgrounds. Glass effects must never reduce readability.
-- Purposeful motion: state feedback, navigation continuity, progress, and discoverability—not decoration that delays clinical work.
+- Purposeful motion: state feedback, navigation continuity, progress, and discoverabilityΓÇönot decoration that delays clinical work.
 - Accessibility: WCAG AA contrast, keyboard focus, reduced-motion support, semantic controls, and no color-only status indicators.
 
 ## 3. Theme presets
@@ -80,9 +80,9 @@ Use one consistent outline icon family (Lucide-style stroke icons) with a small 
 
 | Area | Behavior |
 |---|---|
-| Micro-interactions | 120–180 ms for hover, press, focus, toggle, tooltip, active navigation |
-| Panel transitions | 180–260 ms for drawers, sidebar collapse, tab switch, popovers, modal entrance |
-| Data transitions | 250–450 ms for chart updates and counters; respect reduced motion |
+| Micro-interactions | 120ΓÇô180 ms for hover, press, focus, toggle, tooltip, active navigation |
+| Panel transitions | 180ΓÇô260 ms for drawers, sidebar collapse, tab switch, popovers, modal entrance |
+| Data transitions | 250ΓÇô450 ms for chart updates and counters; respect reduced motion |
 | Loading | Skeleton shimmer or subtle pulse; prefer explicit progress when available |
 | Success feedback | Short confirmation; reserve celebration for non-clinical completion |
 | Drag/resize | Visible handles on hover/focus, snap-to-grid, placeholder outline, keyboard alternatives, save/reset |
@@ -110,14 +110,14 @@ Use one consistent outline icon family (Lucide-style stroke icons) with a small 
 
 ## 10. Theme Studio navigation
 
-- Super Admin → Appearance & Themes
-- Theme Gallery → presets and saved custom themes
-- Theme Editor → colors, typography, surfaces, radii, shadows, density
-- Component Studio → buttons, inputs, cards, tables, charts, chat, clinical components
-- Motion Studio → transitions, interaction states, reduced-motion profile
-- Organization Branding → assign theme, lock tokens, allow overrides
-- Preview & Publish → role previews, draft review, publish and rollback
-- Theme Audit → version history and change log
+- Super Admin ΓåÆ Appearance & Themes
+- Theme Gallery ΓåÆ presets and saved custom themes
+- Theme Editor ΓåÆ colors, typography, surfaces, radii, shadows, density
+- Component Studio ΓåÆ buttons, inputs, cards, tables, charts, chat, clinical components
+- Motion Studio ΓåÆ transitions, interaction states, reduced-motion profile
+- Organization Branding ΓåÆ assign theme, lock tokens, allow overrides
+- Preview & Publish ΓåÆ role previews, draft review, publish and rollback
+- Theme Audit ΓåÆ version history and change log
 
 ## 11. Delivery phases and acceptance criteria
 
@@ -133,3 +133,52 @@ Use one consistent outline icon family (Lucide-style stroke icons) with a small 
 
 - [Code and Chill catalogue](https://codeandchill.store/)
 - [Murmura demo supplied for review](https://demo.codeandchill.store/murmura/)
+
+## Implementation snapshot from the local feature work
+
+
+## What is implemented
+
+- Six validated presets: Clinical Light, Midnight Care, Sage Wellness, Ocean Blue, Violet Glass, and Warm Sand.
+- A global theme provider resolves the signed-in user's effective theme from the backend and applies CSS design tokens to the document root.
+- Super Admin Theme Studio provides instant preview, global publishing, and organization-specific assignment or inheritance.
+- Global theme configuration is stored in `platform_settings`; organization overrides are stored in `organizations.ui_theme`.
+- Theme updates are audited. Only Super Admin can publish the global theme or assign tenant overrides. Organization Admins cannot alter platform or tenant theme assignments.
+- Reusable Framer Motion primitives are available in `web/components/ui/motion.tsx`.
+- Global CSS tokens, responsive Theme Studio styling, focus-visible treatment, and `prefers-reduced-motion` support are included.
+
+## Theme presets
+
+| Preset | Canvas | Surface | Primary | Text |
+|---|---|---|---|---|
+| Clinical Light | `#F5F8FC` | `#FFFFFF` | `#176B87` | `#172B4D` |
+| Midnight Care | `#0D1422` | `#151F31` | `#55C7BE` | `#EAF1FA` |
+| Sage Wellness | `#F2F6F0` | `#FFFFFF` | `#477B62` | `#20382B` |
+| Ocean Blue | `#EEF4FB` | `#FFFFFF` | `#376ED5` | `#1D3154` |
+| Violet Glass | `#F3F1FA` | `#FFFFFF` | `#7657D6` | `#292342` |
+| Warm Sand | `#F7F3ED` | `#FFFEFC` | `#B66B42` | `#3A3029` |
+
+## API
+
+- `GET /api/v1/themes/active` resolves the signed-in user's effective theme.
+- `GET /api/v1/themes/catalog` returns the supported theme catalog.
+- `GET /api/v1/super-admin/theme` reads the platform default.
+- `PATCH /api/v1/super-admin/theme` publishes a platform default.
+- `GET /api/v1/super-admin/organizations/{organization_id}/theme` reads a tenant assignment.
+- `PATCH /api/v1/super-admin/organizations/{organization_id}/theme` assigns a preset or `inherit`.
+
+All write operations require Super Admin authorization and are recorded in the audit log. Preset IDs are allow-listed; arbitrary CSS, JavaScript, and token injection are not accepted.
+
+## Persistence and migration
+
+Alembic revision `0005_theme_studio` adds `organizations.ui_theme` and creates `platform_settings`. The global row is lazily initialized to `clinical-light`. An organization with no preset inherits the platform default.
+
+## Frontend usage
+
+`AppThemeProvider` is mounted inside `AuthProvider` in `web/components/providers.tsx`. Use `useAppTheme()` to read the active preset, inspect the catalog, preview a preset, or refresh the persisted theme. The provider writes `data-theme-preset` to the root element; all application surfaces should use semantic CSS variables rather than hard-coded palette values.
+
+`ThemeStudio` is mounted on `/portal/super-admin`. Theme preview is client-side and does not persist until the Super Admin chooses Publish globally or Save assignment.
+
+## Safety and accessibility
+
+Theme assignment is presentation-only. It does not change roles, membership checks, organization isolation, patient relationships, consent grants, or clinical workflows. Controls expose keyboard focus states. Animations are reduced when the operating system requests reduced motion. Continue to check text contrast for any future token changes.

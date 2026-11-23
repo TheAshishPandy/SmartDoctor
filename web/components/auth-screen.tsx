@@ -59,9 +59,12 @@ export function AuthScreen({ mode }: { mode: Mode }) {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);
     setError("");
     setNotice("");
+    if (mode === "register" && step === "form" && name.trim().length < 2) { setError("Enter your full name (at least 2 characters)."); return; }
+    if ((mode === "register" && step === "form" || mode === "forgot" && step === "reset") && (mode === "register" ? password : newPassword).length < 12) { setError("Password must contain at least 12 characters."); return; }
+    if ((mode === "register" && step === "verify" || mode === "forgot" && step === "reset") && !/^\d{6}$/.test(otp)) { setError("Enter the 6-digit verification code."); return; }
+    setBusy(true);
     try {
       if (mode === "login") {
         const response = await fetch("/api/auth/login", {

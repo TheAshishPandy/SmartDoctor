@@ -29,7 +29,8 @@ async function forward(request: NextRequest, context: RouteContext) {
   const apiPath = "/" + path.map(segment => encodeURIComponent(segment)).join("/");
   const allowed = apiPath.startsWith("/api/v1/workspace/") || apiPath.startsWith("/api/v1/patients/") ||
     apiPath.startsWith("/api/v1/super-admin/") || apiPath.startsWith("/api/v1/organizations/") ||
-    apiPath.startsWith("/api/v1/clinic/") || apiPath === "/api/v1/auth/users" ||
+    apiPath.startsWith("/api/v1/clinic/") || apiPath.startsWith("/api/v1/themes/") ||
+    apiPath.startsWith("/api/v1/super-admin/theme") || apiPath === "/api/v1/auth/users" ||
     apiPath.startsWith("/api/v1/auth/users/");
   if (!allowed) return NextResponse.json({ detail: "API route is not available through this proxy." }, { status: 404 });
 

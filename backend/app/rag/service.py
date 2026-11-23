@@ -17,7 +17,11 @@ class PatientRagService:
                 collection_name=self.collection,
                 vectors_config=models.VectorParams(size=self.dimensions, distance=models.Distance.COSINE),
             )
+        collection_info = await self.client.get_collection(self.collection)
+        existing_indexes = getattr(collection_info, "payload_schema", {}) or {}
         for field in ("organization_id", "patient_id", "document_id"):
+            if field in existing_indexes:
+                continue
             await self.client.create_payload_index(
                 collection_name=self.collection, field_name=field,
                 field_schema=models.PayloadSchemaType.KEYWORD,
