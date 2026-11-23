@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm 
 COPY pyproject.toml ./
 RUN pip install .
 COPY app ./app
+COPY scripts ./scripts
 COPY migrations ./migrations
 COPY alembic.ini ./
 RUN mkdir -p /data/uploads
